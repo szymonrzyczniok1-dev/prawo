@@ -328,6 +328,34 @@
     return true;
   }
 
+  /* ---------------- globalne edycje treści (admin) ---------------- */
+  async function loadOverrides(subject) {
+    if (!isCloud || !sb) return {};
+    try {
+      const { data, error } = await sb.from("question_overrides")
+        .select("qid,level,text").eq("subject", subject);
+      if (error || !data) return {};
+      const map = {};
+      data.forEach(r => { (map[r.qid] = map[r.qid] || {})[r.level] = r.text; });
+      return map;
+    } catch (e) { return {}; }
+  }
+  async function setGlobalOverride(subject, qid, level, text) {
+    if (!isCloud || !sb || !user) throw new Error("Brak uprawnień.");
+    const { error } = await sb.from("question_overrides").upsert({
+      subject, qid, level, text, updated_by: user.id, updated_at: new Date().toISOString()
+    }, { onConflict: "subject,qid,level" });
+    if (error) throw error;
+    return true;
+  }
+  async function clearGlobalOverride(subject, qid, level) {
+    if (!isCloud || !sb || !user) throw new Error("Brak uprawnień.");
+    const { error } = await sb.from("question_overrides")
+      .delete().eq("subject", subject).eq("qid", qid).eq("level", level);
+    if (error) throw error;
+    return true;
+  }
+
   /* ---------------- API procentów (na kafelki) ---------------- */
   // czytamy z lokalnego cache bez sieci — szybki podgląd na stronie głównej
   function masteredCount(sub) {
@@ -349,6 +377,7 @@
     getClient: () => sb,
     getStreak, touchStreak, submitNote,
     load, save, resetSubject, masteredCount, loadQuestions,
+    loadOverrides, setGlobalOverride, clearGlobalOverride,
     getTheme, setTheme, toggleTheme
   };
 })();

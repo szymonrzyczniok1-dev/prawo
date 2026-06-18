@@ -75,6 +75,17 @@
   .flip-qnum{color:var(--ink-faint);font-weight:500}
   .flip-a{font-size:15.5px;line-height:1.72;white-space:pre-wrap}
   .flip-tap{flex:0 0 auto;font-size:12px;color:var(--ink-faint);padding-top:12px;padding-right:14px;display:flex;align-items:center;gap:6px}
+  /* narzędzia edycji fiszki */
+  .flash-tools{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px}
+  .ftool{border:1px solid var(--line-strong);background:var(--surface);color:var(--ink-soft);font:inherit;font-size:12.5px;font-weight:600;padding:6px 13px;border-radius:999px;cursor:pointer;transition:.13s var(--ease)}
+  .ftool:hover{color:var(--ink);border-color:var(--ink-faint);transform:translateY(-1px)}
+  .edit-badge{font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;color:var(--accent);background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 25%,transparent);padding:2px 7px;border-radius:999px;margin-left:6px;vertical-align:middle}
+  .flash-editbox{margin-top:18px;border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:16px;background:var(--surface);box-shadow:var(--shadow-sm);padding:20px 22px}
+  .flash-edit-ta{width:100%;min-height:clamp(220px,42vh,340px);resize:vertical;background:var(--paper);border:1px solid var(--line-strong);color:var(--ink);border-radius:12px;padding:14px 15px;font:inherit;font-size:15px;line-height:1.7;margin-top:12px;outline:none}
+  .flash-edit-ta:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .edit-actions{display:flex;gap:8px;align-items:center;margin-top:14px;flex-wrap:wrap}
+  .edit-hint{font-weight:400;color:var(--ink-faint);text-transform:none;letter-spacing:0}
+  .edit-note{font-size:12px;color:var(--ink-faint);margin-top:12px;line-height:1.5}
 
   textarea{width:100%;min-height:130px;resize:vertical;background:var(--paper);border:1px solid var(--line-strong);
     color:var(--ink);border-radius:12px;padding:14px 15px;font:inherit;font-size:15px;outline:none;line-height:1.6;margin-top:4px}
@@ -191,10 +202,22 @@ let deck = [];
 let idx = 0;
 let answered = false;
 let exactProgress = 0;
+let GLOBAL_OVR = {};    // globalne edycje treści (admin): {qid:{level:text}}
+let flashEdit = false;  // czy fiszka jest w trybie edycji
 
 /* ---------------- pomoc ---------------- */
 const $ = s=>document.querySelector(s);
-function levelText(q){ return q[store.level] || q.sredni || q.skrot || ""; }
+// treść efektywna: edycja użytkownika (store.edits) → globalna (admin) → fabryczna (q[level])
+function effectiveText(q, level){
+  const p = store.edits && store.edits[q.id] && store.edits[q.id][level];
+  if(p!=null) return p;
+  const g = GLOBAL_OVR[q.id] && GLOBAL_OVR[q.id][level];
+  if(g!=null) return g;
+  return q[level]||"";
+}
+function levelText(q){ return effectiveText(q, store.level) || q.sredni || q.skrot || ""; }
+function hasUserEdit(q, level){ return !!(store.edits && store.edits[q.id] && store.edits[q.id][level]!=null); }
+function hasGlobalEdit(q, level){ return !!(GLOBAL_OVR[q.id] && GLOBAL_OVR[q.id][level]!=null); }
 function shuffleArr(a){ for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];} return a; }
 function norm(w){
   return w.toLowerCase()
@@ -260,6 +283,15 @@ function render(){
 
 /* ----- FISZKI ----- */
 function renderFlash(q){
+  if(flashEdit) return renderFlashEdit(q);
+  const lvl = store.level;
+  const admin = Powtorka.isAdmin && Powtorka.isAdmin();
+  const badge = hasUserEdit(q,lvl) ? '<span class="edit-badge">Twoja edycja</span>'
+              : (hasGlobalEdit(q,lvl) ? '<span class="edit-badge">edytowane</span>' : '');
+  let tools = `<div class="flash-tools"><button class="ftool" id="flashEditBtn">✎ Edytuj odpowiedź</button>`;
+  if(hasUserEdit(q,lvl))            tools += `<button class="ftool" id="restoreMine">↺ ${admin?'fabryczne u mnie':'Przywróć fabryczne'}</button>`;
+  if(admin && hasGlobalEdit(q,lvl)) tools += `<button class="ftool" id="restoreAll">↺ fabryczne dla wszystkich</button>`;
+  tools += `</div>`;
   return `
     <div class="flip${answered?' is-flipped':''}" id="flipcard">
       <div class="flip-inner">
@@ -269,16 +301,33 @@ function renderFlash(q){
           <div class="flip-tap">↻ kliknij kartę, aby zobaczyć odpowiedź</div>
         </div>
         <div class="flip-face flip-back">
-          <div class="flip-corner">Odpowiedź · ${levelName()}</div>
+          <div class="flip-corner">Odpowiedź · ${levelName()} ${badge}</div>
           <div class="flip-scroll"><div class="flip-a">${escapeHTML(levelText(q))}</div></div>
           <div class="flip-tap">↻ kliknij, aby wrócić do pytania</div>
         </div>
       </div>
     </div>
+    ${tools}
     <div class="btnrow">
       <button class="btn btn--ghost" id="prev">← Wstecz</button>
       <div id="flashmid"></div>
       <button class="btn" id="next">Dalej →</button>
+    </div>`;
+}
+function renderFlashEdit(q){
+  const admin = Powtorka.isAdmin && Powtorka.isAdmin();
+  return `
+    <div class="flash-editbox">
+      <div class="flip-corner">Edytujesz odpowiedź <span class="edit-hint">· poziom „${levelName()}"</span></div>
+      <textarea id="editTa" class="flash-edit-ta">${escapeHTML(effectiveText(q, store.level))}</textarea>
+      <div class="edit-actions">
+        <button class="btn btn--ghost" id="editCancel">Anuluj</button>
+        <div class="gap"></div>
+        ${admin
+          ? `<button class="btn" id="editSaveMine">Zapisz u mnie</button><button class="btn btn--primary" id="editSaveAll">Zapisz dla wszystkich</button>`
+          : `<button class="btn btn--primary" id="editSaveMine">Zapisz</button>`}
+      </div>
+      <div class="edit-note">Edytujesz treść dla poziomu „${levelName()}". Oryginał („fabryczny") zostaje zachowany — zawsze możesz go przywrócić.</div>
     </div>`;
 }
 function updateFlashMid(q){
@@ -367,6 +416,29 @@ function wireCard(q){
   if(next) next.onclick=()=>{ goNext(); };
 
   if(store.mode==="flash"){
+    if(flashEdit){
+      const ta=$("#editTa");
+      $("#editCancel").onclick=()=>{ flashEdit=false; answered=true; render(); };
+      const sm=$("#editSaveMine");
+      if(sm) sm.onclick=()=>{
+        store.edits[q.id]=store.edits[q.id]||{};
+        store.edits[q.id][store.level]=ta.value;
+        saveStore(); flashEdit=false; answered=true; render();
+        if(typeof PUI!=="undefined") PUI.toast("Zapisano Twoją wersję odpowiedzi.");
+      };
+      const sa=$("#editSaveAll");
+      if(sa) sa.onclick=async()=>{
+        sa.disabled=true; sa.textContent="Zapisywanie…";
+        try{
+          await Powtorka.setGlobalOverride(SUBJECT, String(q.id), store.level, ta.value);
+          GLOBAL_OVR[q.id]=GLOBAL_OVR[q.id]||{}; GLOBAL_OVR[q.id][store.level]=ta.value;
+          if(store.edits[q.id]) delete store.edits[q.id][store.level]; // admin widzi wersję globalną
+          saveStore(); flashEdit=false; answered=true; render();
+          PUI.toast("Zapisano dla wszystkich.");
+        }catch(e){ PUI.toast("Błąd zapisu: "+(e&&e.message||e)); sa.disabled=false; sa.textContent="Zapisz dla wszystkich"; }
+      };
+      return;
+    }
     const flip=$("#flipcard");
     updateFlashMid(q);
     if(flip){
@@ -375,6 +447,21 @@ function wireCard(q){
         updateFlashMid(q);
       };
     }
+    const eb=$("#flashEditBtn"); if(eb) eb.onclick=()=>{ flashEdit=true; answered=true; render(); };
+    const rm=$("#restoreMine"); if(rm) rm.onclick=()=>{
+      if(store.edits[q.id]) delete store.edits[q.id][store.level];
+      saveStore(); answered=true; render();
+      PUI.toast("Przywrócono fabryczną treść (u Ciebie).");
+    };
+    const ra=$("#restoreAll"); if(ra) ra.onclick=async()=>{
+      if(!confirm("Przywrócić fabryczną treść tej odpowiedzi DLA WSZYSTKICH?")) return;
+      try{
+        await Powtorka.clearGlobalOverride(SUBJECT, String(q.id), store.level);
+        if(GLOBAL_OVR[q.id]) delete GLOBAL_OVR[q.id][store.level];
+        answered=true; render();
+        PUI.toast("Przywrócono fabryczne dla wszystkich.");
+      }catch(e){ PUI.toast("Błąd: "+(e&&e.message||e)); }
+    };
   }
   if(store.mode==="abcd"){
     const opts=document.querySelectorAll(".opt");
@@ -561,6 +648,7 @@ function applyDefaults(){
   store.flags = store.flags || {};
   store.flagFilter = store.flagFilter || "all";
   store.exams = store.exams || [];
+  store.edits = store.edits || {};
 }
 function init(){
   if(typeof DATA==="undefined" || !DATA.length){
@@ -584,6 +672,7 @@ async function boot(){
   const rows = await Powtorka.loadQuestions(SUBJECT);
   if(Powtorka.isCloud() && (!rows || !rows.length)){ PUI.accessGate(document.querySelector("main.panel")); return; }
   DATA = rows ? rows.map(r=>r.payload) : (typeof QUESTIONS!=="undefined" ? QUESTIONS.slice() : []);
+  GLOBAL_OVR = await Powtorka.loadOverrides(SUBJECT);
   store = await Powtorka.load(SUBJECT);
   applyDefaults();
   init();
