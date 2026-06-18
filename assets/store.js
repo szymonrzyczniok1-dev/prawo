@@ -204,6 +204,26 @@
     if (error) throw error;
     return true;
   }
+  // prośba o dostęp (gdy ktoś nie ma kodu) — trafia do panelu admina
+  async function requestAccess(opts) {
+    opts = opts || {};
+    if (!isCloud || !sb) throw new Error("Tryb lokalny.");
+    const { error } = await sb.from("access_requests").insert({
+      email: (opts.email || "").trim(), name: opts.name || null, message: opts.message || null
+    });
+    if (error) throw error;
+    return true;
+  }
+  // admin zatwierdza prośbę → funkcja brzegowa wysyła maila przez Supabase
+  async function approveRequest(requestId) {
+    if (!isCloud || !sb) throw new Error("Tryb lokalny.");
+    const { data, error } = await sb.functions.invoke("approve-access", {
+      body: { request_id: requestId, site_url: location.origin + "/" }
+    });
+    if (error) throw error;
+    if (data && data.error) throw new Error(data.error);
+    return true;
+  }
   // usunięcie własnego konta i danych
   async function deleteAccount() {
     if (!isCloud || !sb || !user) throw new Error("Tryb lokalny.");
@@ -323,7 +343,7 @@
     hasCloudConfig: () => HAS_CLOUD_CFG,
     getUser: () => user,
     signUp, signIn, signOut, setLocalProfile, redeemCode, getProfile,
-    resetPassword, updatePassword, deleteAccount,
+    resetPassword, updatePassword, deleteAccount, requestAccess, approveRequest,
     isAdmin: () => !!(user && user.role === "admin"),
     isApproved: () => !!(user && user.approved),
     getClient: () => sb,

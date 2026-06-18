@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Panel admina — Powtórki</title>
+<title>Panel admina — LexFlip</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..600&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -16,6 +16,7 @@
   .tabs{display:inline-flex;gap:4px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-pill);padding:4px;margin:22px 0 18px;flex-wrap:wrap}
   .tab{border:none;background:transparent;color:var(--ink-soft);font:inherit;font-weight:600;font-size:13.5px;padding:8px 16px;border-radius:var(--r-pill);cursor:pointer;transition:.15s var(--ease)}
   .tab:hover{color:var(--ink)} .tab.active{background:var(--surface);color:var(--accent);box-shadow:var(--shadow-sm)}
+  .reqbadge{display:inline-block;min-width:18px;height:18px;line-height:18px;text-align:center;font-size:11px;font-weight:700;color:#fff;background:var(--no);border-radius:999px;padding:0 5px;margin-left:2px}
   .panel-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);box-shadow:var(--shadow-sm);padding:20px}
   table{width:100%;border-collapse:collapse;font-size:14px}
   th{text-align:left;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;padding:8px 12px;border-bottom:1px solid var(--line)}
@@ -44,7 +45,7 @@
 
 <header class="topbar">
   <div class="inner">
-    <a class="brand" href="index.html"><span class="mark">P</span><span><b>Powtórki</b><small>Panel admina</small></span></a>
+    <a class="brand" href="index.html"><span class="mark">L</span><span><b>LexFlip</b><small>Panel admina</small></span></a>
     <div class="spacer"></div>
     <a class="btn btn--ghost btn--sm" href="index.html">← Strona główna</a>
     <button class="iconbtn" id="themeBtn" title="Przełącz motyw" aria-label="Przełącz motyw"></button>
@@ -82,14 +83,70 @@ function shell(){
   return `<div class="ahead"><div class="eyebrow">Administracja</div><h1>Panel admina</h1>
     <div class="sub">Zarządzaj dostępem, kontami i zgłoszeniami notatek.</div></div>
     <div class="tabs">
+      <button class="tab" data-t="prosby">Prośby o dostęp <span id="reqBadge" class="reqbadge" style="display:none"></span></button>
       <button class="tab" data-t="kody">Kody dostępu</button>
       <button class="tab" data-t="konta">Konta</button>
-      <button class="tab" data-t="notatki">Notatki do weryfikacji</button>
+      <button class="tab" data-t="notatki">Notatki</button>
     </div>
     <div id="tabbody"></div>`;
 }
 function setTab(t){ TAB=t; document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.t===t));
-  if(t==="kody") renderCodes(); else if(t==="konta") renderAccounts(); else renderNotes(); }
+  if(t==="kody") renderCodes(); else if(t==="konta") renderAccounts(); else if(t==="prosby") renderRequests(); else renderNotes(); }
+
+/* ---------------- PROŚBY O DOSTĘP ---------------- */
+function statusTag(s){ return s==="zatwierdzona"?'<span class="tag ok">zatwierdzona</span>':s==="odrzucona"?'<span class="tag no">odrzucona</span>':'<span class="tag adm">nowa</span>'; }
+async function renderRequests(){
+  const body=$("#tabbody");
+  body.innerHTML=`<div class="panel-card"><div class="scroll"><table>
+    <thead><tr><th>Data</th><th>Osoba</th><th>E-mail</th><th>Wiadomość</th><th>Status</th><th></th></tr></thead>
+    <tbody id="reqBody"><tr><td colspan="6" class="empty">Wczytywanie…</td></tr></tbody></table></div></div>`;
+  const sb=Powtorka.getClient();
+  const { data, error } = await sb.from("access_requests").select("*").order("created_at",{ascending:false});
+  const tb=$("#reqBody");
+  if(error){ tb.innerHTML=`<tr><td colspan="6" class="empty">Błąd: ${esc(error.message)}</td></tr>`; return; }
+  if(!data.length){ tb.innerHTML=`<tr><td colspan="6" class="empty">Brak próśb o dostęp.</td></tr>`; return; }
+  tb.innerHTML = data.map(r=>`<tr>
+    <td style="white-space:nowrap">${fmtDate(r.created_at)}</td>
+    <td>${esc(r.name||"—")}</td>
+    <td><b>${esc(r.email)}</b></td>
+    <td><div class="note-content">${esc(r.message||"")}</div></td>
+    <td>${statusTag(r.status)}</td>
+    <td style="text-align:right;white-space:nowrap">
+      ${r.status!=="zatwierdzona"?`<button class="btn btn--sm" data-appr="${r.id}">Zatwierdź</button>`:""}
+      ${r.status==="nowa"?`<button class="btn btn--sm" data-rej="${r.id}">Odrzuć</button>`:""}
+      <button class="btn btn--sm" style="color:var(--no)" data-del="${r.id}">Usuń</button>
+    </td></tr>`).join("");
+  tb.querySelectorAll("[data-appr]").forEach(b=>b.onclick=()=>approveReq(b.dataset.appr, b));
+  tb.querySelectorAll("[data-rej]").forEach(b=>b.onclick=()=>rejectReq(b.dataset.rej));
+  tb.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>delReq(b.dataset.del));
+  updateReqBadge();
+}
+async function approveReq(id, btn){
+  if(btn){ btn.disabled=true; btn.textContent="…"; }
+  try{ await Powtorka.approveRequest(id); toast("Zatwierdzono — e-mail z dostępem wysłany."); renderRequests(); }
+  catch(e){ toast("Błąd: "+(e&&e.message||e)); if(btn){ btn.disabled=false; btn.textContent="Zatwierdź"; } }
+}
+async function rejectReq(id){
+  const sb=Powtorka.getClient();
+  const { error } = await sb.from("access_requests").update({status:"odrzucona"}).eq("id",id);
+  if(error){ toast("Błąd: "+error.message); return; }
+  toast("Prośba odrzucona."); renderRequests();
+}
+async function delReq(id){
+  if(!confirm("Usunąć tę prośbę?")) return;
+  const sb=Powtorka.getClient();
+  const { error } = await sb.from("access_requests").delete().eq("id",id);
+  if(error){ toast("Błąd: "+error.message); return; }
+  toast("Prośba usunięta."); renderRequests();
+}
+async function updateReqBadge(){
+  try{
+    const sb=Powtorka.getClient();
+    const { count } = await sb.from("access_requests").select("id",{count:"exact",head:true}).eq("status","nowa");
+    const b=$("#reqBadge");
+    if(b){ if(count){ b.textContent=count; b.style.display="inline-block"; } else { b.style.display="none"; } }
+  }catch(e){}
+}
 
 /* ---------------- KODY ---------------- */
 async function renderCodes(){
@@ -238,7 +295,7 @@ async function boot(){
   if(!Powtorka.isAdmin()){ gate("Brak dostępu","To konto nie ma uprawnień administratora.",'<a class="btn btn--primary" href="index.html">Wróć do nauki</a>'); return; }
   $("#content").innerHTML=shell();
   document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>setTab(b.dataset.t));
-  setTab("kody");
+  setTab("prosby");
   Powtorka.onChange(renderAuthSlot);
 }
 boot();

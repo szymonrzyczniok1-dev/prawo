@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Powtórki — panel nauki do studiów prawniczych</title>
-<meta name="description" content="Panel powtórkowy do egzaminów na studiach prawniczych — fiszki, testy ABCD, kazusy. Postępy zapisywane na koncie.">
+<title>LexFlip — powtórki do studiów prawniczych</title>
+<meta name="description" content="LexFlip — panel do nauki na studiach prawniczych: fiszki, testy ABCD, kazusy, egzaminy. Postępy zapisywane na koncie.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..600&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -15,9 +15,9 @@
 <!-- ====================== TOPBAR ====================== -->
 <header class="topbar">
   <div class="inner">
-    <a class="brand" href="index.html" aria-label="Powtórki — strona główna">
-      <span class="mark">P</span>
-      <span><b>Powtórki</b><small>Studia prawnicze</small></span>
+    <a class="brand" href="index.html" aria-label="LexFlip — strona główna">
+      <span class="mark">L</span>
+      <span><b>LexFlip</b><small>Studia prawnicze</small></span>
     </a>
     <div class="spacer"></div>
     <span class="modechip" id="modechip" title="Tryb zapisu postępów"><span class="dot"></span><span id="modechipTxt">tryb lokalny</span></span>
@@ -60,7 +60,7 @@
 
   <footer class="foot">
     Materiały mają charakter pomocniczy w nauce własnej.<br>
-    Powtórki · panel nauki · <span id="yearNow"></span>
+    LexFlip · panel nauki · <span id="yearNow"></span>
     <div class="links"><a href="polityka-prywatnosci.html">Polityka prywatności</a> · <a href="regulamin.html">Regulamin</a></div>
   </footer>
 </main>
@@ -302,6 +302,30 @@ function renderAuthBody(){
     go.onclick=submit; $("#aEmail").addEventListener("keydown",e=>{ if(e.key==="Enter") submit(); });
     return;
   }
+  if(authMode==="request"){
+    body.innerHTML=`
+      <h2 id="authTitle">Poproś o dostęp</h2>
+      <p class="sub">Nie masz kodu? Zostaw e-mail — organizator rozpatrzy prośbę i wyśle Ci dostęp mailem.</p>
+      <div class="field"><label>Imię i nazwisko (opcjonalnie)</label><input id="aName" type="text" placeholder="Szymon Rzyczniok" autocomplete="name"></div>
+      <div class="field"><label>E-mail</label><input id="aEmail" type="email" placeholder="ty@example.com" autocomplete="email"></div>
+      <div class="field"><label>Wiadomość (opcjonalnie)</label><textarea id="aMsg" placeholder="np. rok II, grupa dr. Marchaja" style="width:100%;min-height:70px;resize:vertical;font:inherit;font-size:14.5px;padding:10px 12px;border-radius:10px;border:1px solid var(--line-strong);background:var(--paper);color:var(--ink);line-height:1.5"></textarea></div>
+      <div class="err" id="aErr"></div>
+      <button class="btn btn--primary btn--block" id="aGo" style="margin-top:6px">Wyślij prośbę</button>
+      <div class="switch">Masz już kod? <button id="aBack">Wróć do logowania</button></div>`;
+    $("#aBack").onclick=()=>{ authMode="login"; renderAuthBody(); };
+    const go=$("#aGo"), err=$("#aErr");
+    const submit=async()=>{
+      const email=$("#aEmail").value.trim(); err.classList.remove("show");
+      if(!email){ err.style.color=""; err.textContent="Podaj e-mail."; err.classList.add("show"); return; }
+      go.disabled=true; go.textContent="Wysyłanie…";
+      try{ await Powtorka.requestAccess({email, name:$("#aName").value.trim(), message:$("#aMsg").value.trim()});
+        err.style.color="var(--ok)"; err.textContent="Wysłaliśmy prośbę. Dostaniesz e-mail, gdy organizator ją zatwierdzi."; err.classList.add("show"); }
+      catch(ex){ err.style.color=""; err.textContent="Nie udało się wysłać prośby. Spróbuj ponownie."; err.classList.add("show"); }
+      finally{ go.disabled=false; go.textContent="Wyślij prośbę"; }
+    };
+    go.onclick=submit; $("#aEmail").addEventListener("keydown",e=>{ if(e.key==="Enter") submit(); });
+    return;
+  }
   const isLogin = authMode==="login";
   body.innerHTML=`
     <h2 id="authTitle">${isLogin?"Zaloguj się":"Załóż konto"}</h2>
@@ -321,8 +345,10 @@ function renderAuthBody(){
     <div class="err" id="aErr"></div>
     <button class="btn btn--primary btn--block" id="aGo" style="margin-top:6px">${isLogin?"Zaloguj się":"Załóż konto"}</button>
     <div class="switch">${isLogin?"Nie masz konta?":"Masz już konto?"}
-      <button id="aSwitch">${isLogin?"Zarejestruj się":"Zaloguj się"}</button></div>`;
+      <button id="aSwitch">${isLogin?"Zarejestruj się":"Zaloguj się"}</button></div>
+    <div class="switch" style="margin-top:6px">Nie masz kodu dostępu? <button id="aRequest">Poproś o dostęp</button></div>`;
   $("#aSwitch").onclick=()=>{ authMode=isLogin?"register":"login"; renderAuthBody(); };
+  $("#aRequest").onclick=()=>{ authMode="request"; renderAuthBody(); };
   const fg=$("#aForgot"); if(fg) fg.onclick=()=>{ authMode="reset"; renderAuthBody(); };
   const go=$("#aGo");
   const submit=async()=>{
