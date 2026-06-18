@@ -162,7 +162,6 @@
 <script src="../../assets/config.js"></script>
 <script src="../../assets/store.js"></script>
 <script src="../../assets/features.js"></script>
-<script src="questions.js"></script>
 <script>
 /* ---------------- stan (postępy przez Powtorka — konta/sync) ---------------- */
 const SUBJECT = "prawo-administracyjne";
@@ -540,13 +539,14 @@ function init(){
 async function boot(){
   paintTheme();
   await Powtorka.init();
-  // pytania z bazy; gdy brak chmury/sieci — fallback do questions.js
+  renderAuthSlot();
+  Powtorka.onChange(renderAuthSlot);
+  // pytania z bazy; brak dostępu → ekran logowania/kodu (mur)
   const rows = await Powtorka.loadQuestions(SUBJECT);
+  if(Powtorka.isCloud() && (!rows || !rows.length)){ PUI.accessGate(document.querySelector("main.panel")); return; }
   DATA = rows ? rows.map(r=>r.payload) : (typeof QUESTIONS!=="undefined" ? QUESTIONS.slice() : []);
   store = await Powtorka.load(SUBJECT);
   applyDefaults();
-  renderAuthSlot();
-  Powtorka.onChange(renderAuthSlot);
   init();
 }
 boot();

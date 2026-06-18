@@ -143,12 +143,7 @@
 <script src="../../assets/config.js"></script>
 <script src="../../assets/store.js"></script>
 <script src="../../assets/features.js"></script>
-<script src="data.js"></script>
 <script>
-// ====== fallback gdyby data.js nie wczytał się ======
-if(!window.PYTANIA){ document.getElementById('quizArea').innerHTML =
-  '<div class="card">Nie udało się wczytać pliku <b>data.js</b>. Upewnij się, że leży w tym samym folderze.</div>'; }
-
 const SUBJECT="prawo-karne";
 let P = [];   // pytania ABCD: z bazy (Supabase) lub fallback do data.js
 let K = [];   // kazusy
@@ -388,8 +383,11 @@ function renderAuthSlot(){
 async function boot(){
   paintTheme();
   await Powtorka.init();
-  // pytania z bazy; gdy brak chmury/sieci — fallback do data.js
+  renderAuthSlot();
+  Powtorka.onChange(renderAuthSlot);
+  // pytania z bazy; brak dostępu → ekran logowania/kodu (mur)
   const rows = await Powtorka.loadQuestions(SUBJECT);
+  if(Powtorka.isCloud() && (!rows || !rows.length)){ PUI.accessGate(document.querySelector("main.panel")); return; }
   if(rows){
     P = rows.filter(r=>r.kind==='abcd').map(r=>r.payload);
     K = rows.filter(r=>r.kind==='kazus').map(r=>r.payload);
@@ -402,8 +400,6 @@ async function boot(){
   store = await Powtorka.load(SUBJECT);
   store.flags = store.flags || {};
   store.exams = store.exams || [];
-  renderAuthSlot();
-  Powtorka.onChange(renderAuthSlot);
   // przywróć zapisaną sesję quizu
   if(Array.isArray(store.answers) && store.answers.length===P.length){
     answers = store.answers;

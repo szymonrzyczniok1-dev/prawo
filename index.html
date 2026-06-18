@@ -61,8 +61,14 @@
   <footer class="foot">
     Materiały mają charakter pomocniczy w nauce własnej.<br>
     Powtórki · panel nauki · <span id="yearNow"></span>
+    <div class="links"><a href="polityka-prywatnosci.html">Polityka prywatności</a> · <a href="regulamin.html">Regulamin</a></div>
   </footer>
 </main>
+
+<div class="cookiebar" id="cookiebar">
+  <span>Używamy pamięci przeglądarki tylko do logowania i zapisu postępów — niezbędne do działania, bez śledzenia i reklam. <a href="polityka-prywatnosci.html">Więcej</a></span>
+  <button class="btn btn--primary btn--sm" id="cookieOk">OK</button>
+</div>
 
 <!-- ====================== MODAL LOGOWANIA ====================== -->
 <div class="overlay" id="authOverlay">
@@ -196,15 +202,14 @@ function renderCrumbs(yearId){
 }
 function openYear(id){
   location.hash = id;
-  $("#viewYears").hidden=true; $("#viewSubjects").hidden=false;
-  renderSubjects(id); renderCrumbs(id);
-  reflowStagger($("#subjectGrid"));
+  const swap=()=>{ $("#viewYears").hidden=true; $("#viewSubjects").hidden=false; renderSubjects(id); renderCrumbs(id); reflowStagger($("#subjectGrid")); };
+  if(document.startViewTransition) document.startViewTransition(swap); else swap();
   window.scrollTo({top:0,behavior:"smooth"});
 }
 function goHome(){
   history.replaceState(null,"",location.pathname);
-  $("#viewSubjects").hidden=true; $("#viewYears").hidden=false;
-  renderCrumbs(null);
+  const swap=()=>{ $("#viewSubjects").hidden=true; $("#viewYears").hidden=false; renderCrumbs(null); };
+  if(document.startViewTransition) document.startViewTransition(swap); else swap();
   window.scrollTo({top:0,behavior:"smooth"});
 }
 $("#backToYears").onclick=goHome;
@@ -275,7 +280,11 @@ function renderAuthBody(){
     </div>`}
     <div class="field"><label>E-mail</label><input id="aEmail" type="email" placeholder="ty@example.com" autocomplete="email"></div>
     <div class="field"><label>Hasło</label><input id="aPass" type="password" placeholder="min. 6 znaków" autocomplete="${isLogin?"current-password":"new-password"}"></div>
-    ${isLogin?"":`<div class="field"><label>Kod dostępu</label><input id="aCode" type="text" placeholder="kod od organizatora roku" autocomplete="off"></div>`}
+    ${isLogin?"":`<div class="field"><label>Kod dostępu</label><input id="aCode" type="text" placeholder="kod od organizatora roku" autocomplete="off"></div>
+    <label style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--ink-soft);margin:2px 0 6px;cursor:pointer">
+      <input type="checkbox" id="aConsent" style="margin-top:3px;accent-color:var(--accent);width:15px;height:15px;flex:0 0 auto">
+      <span>Akceptuję <a href="regulamin.html" target="_blank" style="color:var(--accent);font-weight:600">Regulamin</a> i <a href="polityka-prywatnosci.html" target="_blank" style="color:var(--accent);font-weight:600">Politykę prywatności</a>.</span>
+    </label>`}
     <div class="err" id="aErr"></div>
     <button class="btn btn--primary btn--block" id="aGo" style="margin-top:6px">${isLogin?"Zaloguj się":"Załóż konto"}</button>
     <div class="switch">${isLogin?"Nie masz konta?":"Masz już konto?"}
@@ -290,6 +299,7 @@ function renderAuthBody(){
     if(!isLogin){
       first=$("#aFirst").value.trim(); last=$("#aLast").value.trim(); code=$("#aCode").value.trim();
       if(!first||!last){ err.textContent="Podaj imię i nazwisko."; err.classList.add("show"); return; }
+      if(!$("#aConsent").checked){ err.textContent="Zaakceptuj regulamin i politykę prywatności."; err.classList.add("show"); return; }
     }
     go.disabled=true; go.textContent="Chwila…";
     try{
@@ -334,6 +344,9 @@ async function syncRings(){
 function boot(){
   paintTheme();
   $("#yearNow").textContent = new Date().getFullYear();
+  // baner informacyjny o pamięci przeglądarki
+  try{ if(!localStorage.getItem("powtorka.cookieok")) $("#cookiebar").classList.add("show"); }catch(e){}
+  $("#cookieOk").onclick=()=>{ try{localStorage.setItem("powtorka.cookieok","1");}catch(e){} $("#cookiebar").classList.remove("show"); };
   renderYears();
   Powtorka.onChange(()=>{ renderAuthSlot(); renderSubjectsIfOpen(); syncRings(); });
   // deep-link po hash

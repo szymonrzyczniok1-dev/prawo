@@ -239,5 +239,34 @@
     });
   }
 
-  window.PUI = { modal, streakChip, examOpen, notesOpen, toast, esc, shuffle };
+  /* ---------------- ekran dostępu (mur) ---------------- */
+  function homeHref(){ return location.pathname.includes("/przedmioty/") ? "../../index.html" : "index.html"; }
+  function accessGate(target){
+    if(!target) return;
+    const u = Powtorka.getUser();
+    if(!u){
+      target.innerHTML = `<div class="gate"><h2>Dostęp dla zalogowanych</h2>
+        <p>Ta powtórka jest dostępna po zalogowaniu i wpisaniu kodu dostępu od organizatora roku.</p>
+        <a class="btn btn--primary" href="${homeHref()}">Zaloguj się / Zarejestruj</a></div>`;
+      return;
+    }
+    target.innerHTML = `<div class="gate"><h2>Wpisz kod dostępu</h2>
+      <p>Konto <b>${esc(u.name)}</b> czeka na odblokowanie. Podaj kod dostępu, aby zacząć naukę.</p>
+      <div style="display:flex;gap:8px;justify-content:center;max-width:360px;margin:0 auto">
+        <input id="gateCode" placeholder="kod dostępu" autocomplete="off" style="flex:1;font:inherit;font-size:15px;padding:10px 13px;border-radius:10px;border:1px solid var(--line-strong);background:var(--paper);color:var(--ink)">
+        <button class="btn btn--primary" id="gateGo">Odblokuj</button>
+      </div>
+      <div class="err" id="gateErr">Kod nieprawidłowy lub nieaktywny.</div>
+      <p style="margin-top:18px"><a href="${homeHref()}" style="color:var(--ink-soft);font-size:13px;text-decoration:none">← Strona główna</a></p></div>`;
+    const go=target.querySelector("#gateGo"), err=target.querySelector("#gateErr"), inp=target.querySelector("#gateCode");
+    const submit=async()=>{
+      const code=inp.value.trim(); if(!code) return;
+      go.disabled=true; go.textContent="…"; err.classList.remove("show");
+      const ok=await Powtorka.redeemCode(code);
+      if(ok){ location.reload(); } else { err.classList.add("show"); go.disabled=false; go.textContent="Odblokuj"; }
+    };
+    go.onclick=submit; inp.addEventListener("keydown",e=>{ if(e.key==="Enter") submit(); }); inp.focus();
+  }
+
+  window.PUI = { modal, streakChip, examOpen, notesOpen, accessGate, toast, esc, shuffle };
 })();
