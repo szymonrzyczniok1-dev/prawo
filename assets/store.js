@@ -189,6 +189,29 @@
     else { LS.del("powtorka.localUser"); }
     user = null; emit();
   }
+  // reset hasła — wysyła link na e-mail (wymaga skonfigurowanego SMTP w Supabase)
+  async function resetPassword(email) {
+    if (!isCloud || !sb) throw new Error("Tryb lokalny.");
+    const redirectTo = new URL("reset-haslo.html", location.href).href;
+    const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo });
+    if (error) throw error;
+    return true;
+  }
+  // ustawienie nowego hasła (po wejściu z linku resetującego)
+  async function updatePassword(newPassword) {
+    if (!isCloud || !sb) throw new Error("Tryb lokalny.");
+    const { error } = await sb.auth.updateUser({ password: newPassword });
+    if (error) throw error;
+    return true;
+  }
+  // usunięcie własnego konta i danych
+  async function deleteAccount() {
+    if (!isCloud || !sb) throw new Error("Tryb lokalny.");
+    const { error } = await sb.rpc("delete_my_account");
+    if (error) throw error;
+    await signOut();
+    return true;
+  }
 
   /* ---------------- API postępów ---------------- */
   async function load(sub) {
@@ -293,6 +316,7 @@
     hasCloudConfig: () => HAS_CLOUD_CFG,
     getUser: () => user,
     signUp, signIn, signOut, setLocalProfile, redeemCode, getProfile,
+    resetPassword, updatePassword, deleteAccount,
     isAdmin: () => !!(user && user.role === "admin"),
     isApproved: () => !!(user && user.approved),
     getClient: () => sb,

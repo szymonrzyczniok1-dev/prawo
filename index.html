@@ -114,7 +114,8 @@ const ICON = {
   arrow:'<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
   chevron:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>',
   logout:'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>',
-  admin:'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.4-3 7.4-7 9-4-1.6-7-4.6-7-9V6l7-3z"/></svg>'
+  admin:'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.4-3 7.4-7 9-4-1.6-7-4.6-7-9V6l7-3z"/></svg>',
+  trash:'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6"/></svg>'
 };
 
 /* ============================ POMOC ============================ */
@@ -243,10 +244,20 @@ function toggleUserMenu(u){
   const where = Powtorka.isCloud()? (u.email||"") : "Profil lokalny (ta przeglądarka)";
   const adminLink = Powtorka.isAdmin()
     ? `<a class="mi" href="admin.html">${ICON.admin} Panel admina</a><div class="sep"></div>` : "";
+  const delItem = Powtorka.isCloud()
+    ? `<div class="sep"></div><button class="mi" id="miDel" style="color:var(--no)">${ICON.trash} Usuń konto</button>` : "";
   m.innerHTML=`<div class="mhead"><div style="font-weight:600">${u.name}</div><div class="e">${where}</div></div>
-    ${adminLink}<button class="mi" id="miOut">${ICON.logout} Wyloguj się</button>`;
+    ${adminLink}<button class="mi" id="miOut">${ICON.logout} Wyloguj się</button>${delItem}`;
   m.classList.add("show");
   $("#miOut").onclick=async()=>{ m.classList.remove("show"); await Powtorka.signOut(); toast("Wylogowano."); refreshUI(); };
+  const miDel=$("#miDel");
+  if(miDel) miDel.onclick=async()=>{
+    m.classList.remove("show");
+    if(confirm("Na pewno usunąć konto? Tego nie można cofnąć — Twoje dane i postępy zostaną trwale usunięte.")){
+      try{ await Powtorka.deleteAccount(); toast("Konto zostało usunięte."); refreshUI(); }
+      catch(e){ toast("Nie udało się usunąć konta. Spróbuj ponownie."); }
+    }
+  };
 }
 document.addEventListener("click",()=>$("#userMenu").classList.remove("show"));
 
@@ -270,6 +281,27 @@ function renderAuthBody(){
     $("#aGo").onclick=()=>{ Powtorka.setLocalProfile($("#aName").value); closeAuth(); toast("Cześć, "+Powtorka.getUser().name+"!"); refreshUI(); };
     return;
   }
+  if(authMode==="reset"){
+    body.innerHTML=`
+      <h2 id="authTitle">Reset hasła</h2>
+      <p class="sub">Podaj e-mail konta — wyślemy link do ustawienia nowego hasła.</p>
+      <div class="field"><label>E-mail</label><input id="aEmail" type="email" placeholder="ty@example.com" autocomplete="email"></div>
+      <div class="err" id="aErr"></div>
+      <button class="btn btn--primary btn--block" id="aGo" style="margin-top:6px">Wyślij link</button>
+      <div class="switch">Przypomniałeś sobie? <button id="aBack">Wróć do logowania</button></div>`;
+    $("#aBack").onclick=()=>{ authMode="login"; renderAuthBody(); };
+    const go=$("#aGo"), err=$("#aErr");
+    const submit=async()=>{
+      const email=$("#aEmail").value.trim(); err.classList.remove("show");
+      if(!email){ err.style.color=""; err.textContent="Podaj e-mail."; err.classList.add("show"); return; }
+      go.disabled=true; go.textContent="Wysyłanie…";
+      try{ await Powtorka.resetPassword(email); err.style.color="var(--ok)"; err.textContent="Jeśli konto istnieje, wysłaliśmy link na podany e-mail."; err.classList.add("show"); }
+      catch(ex){ err.style.color=""; err.textContent="Nie udało się wysłać. Spróbuj ponownie."; err.classList.add("show"); }
+      finally{ go.disabled=false; go.textContent="Wyślij link"; }
+    };
+    go.onclick=submit; $("#aEmail").addEventListener("keydown",e=>{ if(e.key==="Enter") submit(); });
+    return;
+  }
   const isLogin = authMode==="login";
   body.innerHTML=`
     <h2 id="authTitle">${isLogin?"Zaloguj się":"Załóż konto"}</h2>
@@ -280,6 +312,7 @@ function renderAuthBody(){
     </div>`}
     <div class="field"><label>E-mail</label><input id="aEmail" type="email" placeholder="ty@example.com" autocomplete="email"></div>
     <div class="field"><label>Hasło</label><input id="aPass" type="password" placeholder="min. 6 znaków" autocomplete="${isLogin?"current-password":"new-password"}"></div>
+    ${isLogin?`<div style="text-align:right;margin:-6px 0 8px"><button type="button" id="aForgot" style="background:none;border:none;color:var(--accent);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;padding:0">Nie pamiętam hasła</button></div>`:""}
     ${isLogin?"":`<div class="field"><label>Kod dostępu</label><input id="aCode" type="text" placeholder="kod od organizatora roku" autocomplete="off"></div>
     <label style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:var(--ink-soft);margin:2px 0 6px;cursor:pointer">
       <input type="checkbox" id="aConsent" style="margin-top:3px;accent-color:var(--accent);width:15px;height:15px;flex:0 0 auto">
@@ -290,6 +323,7 @@ function renderAuthBody(){
     <div class="switch">${isLogin?"Nie masz konta?":"Masz już konto?"}
       <button id="aSwitch">${isLogin?"Zarejestruj się":"Zaloguj się"}</button></div>`;
   $("#aSwitch").onclick=()=>{ authMode=isLogin?"register":"login"; renderAuthBody(); };
+  const fg=$("#aForgot"); if(fg) fg.onclick=()=>{ authMode="reset"; renderAuthBody(); };
   const go=$("#aGo");
   const submit=async()=>{
     const err=$("#aErr"); err.classList.remove("show");

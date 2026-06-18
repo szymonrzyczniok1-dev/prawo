@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ustaw nowe hasło — Powtórki</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..600&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="inner">
+    <a class="brand" href="index.html"><span class="mark">P</span><span><b>Powtórki</b><small>Nowe hasło</small></span></a>
+    <div class="spacer"></div>
+    <a class="btn btn--ghost btn--sm" href="index.html">← Strona główna</a>
+  </div>
+</header>
+
+<main class="wrap">
+  <div id="content" style="max-width:420px;margin:70px auto"><div class="gate"><p>Wczytywanie…</p></div></div>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="assets/config.js"></script>
+<script src="assets/store.js"></script>
+<script>
+const $ = s=>document.querySelector(s);
+function toast(m){ const t=$("#toast"); t.textContent=m; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),2600); }
+
+async function boot(){
+  document.documentElement.setAttribute("data-theme", Powtorka.getTheme());
+  await Powtorka.init();
+  if(!Powtorka.isCloud()){
+    $("#content").innerHTML = `<div class="gate"><h2>Niedostępne</h2><p>Reset hasła wymaga konta w chmurze.</p><a class="btn btn--primary" href="index.html">Strona główna</a></div>`;
+    return;
+  }
+  // klient Supabase z linku resetującego ustawia sesję odzyskiwania
+  if(!Powtorka.getUser()){
+    $("#content").innerHTML = `<div class="gate"><h2>Link nieprawidłowy lub wygasł</h2>
+      <p>Otwórz najnowszy link z e-maila albo poproś o nowy na stronie logowania.</p>
+      <a class="btn btn--primary" href="index.html">Wróć do logowania</a></div>`;
+    return;
+  }
+  renderForm();
+}
+function renderForm(){
+  $("#content").innerHTML = `
+    <div class="card" style="padding:26px">
+      <h2 style="font-family:'Fraunces',serif;font-weight:560;font-size:1.6rem;margin:0 0 4px">Ustaw nowe hasło</h2>
+      <p class="muted" style="font-size:14px;margin:0 0 18px">Konto: <b>${(Powtorka.getUser().email)||""}</b></p>
+      <div class="field" style="margin-bottom:13px"><label style="display:block;font-size:12.5px;font-weight:600;color:var(--ink-soft);margin-bottom:6px">Nowe hasło</label>
+        <input id="p1" type="password" placeholder="min. 6 znaków" autocomplete="new-password" style="width:100%;font:inherit;font-size:15px;padding:11px 13px;border-radius:10px;border:1px solid var(--line-strong);background:var(--paper);color:var(--ink)"></div>
+      <div class="field" style="margin-bottom:13px"><label style="display:block;font-size:12.5px;font-weight:600;color:var(--ink-soft);margin-bottom:6px">Powtórz hasło</label>
+        <input id="p2" type="password" placeholder="powtórz" autocomplete="new-password" style="width:100%;font:inherit;font-size:15px;padding:11px 13px;border-radius:10px;border:1px solid var(--line-strong);background:var(--paper);color:var(--ink)"></div>
+      <div class="err" id="err" style="display:none;color:var(--no);font-size:13px;margin-bottom:10px"></div>
+      <button class="btn btn--primary btn--block" id="save">Zapisz nowe hasło</button>
+    </div>`;
+  const err=$("#err"), save=$("#save");
+  const submit=async()=>{
+    const p1=$("#p1").value, p2=$("#p2").value; err.style.display="none";
+    if(p1.length<6){ err.textContent="Hasło musi mieć min. 6 znaków."; err.style.display="block"; return; }
+    if(p1!==p2){ err.textContent="Hasła nie są takie same."; err.style.display="block"; return; }
+    save.disabled=true; save.textContent="Zapisywanie…";
+    try{
+      await Powtorka.updatePassword(p1);
+      $("#content").innerHTML = `<div class="gate"><h2>Hasło zmienione ✓</h2><p>Możesz zalogować się nowym hasłem.</p><a class="btn btn--primary" href="index.html">Przejdź do logowania</a></div>`;
+    }catch(e){ err.textContent="Nie udało się zmienić hasła. Otwórz link ponownie."; err.style.display="block"; save.disabled=false; save.textContent="Zapisz nowe hasło"; }
+  };
+  save.onclick=submit;
+  $("#p2").addEventListener("keydown",e=>{ if(e.key==="Enter") submit(); });
+}
+boot();
+</script>
+</body>
+</html>

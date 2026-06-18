@@ -182,13 +182,13 @@ async function setRole(id, role){
 async function renderNotes(){
   const body=$("#tabbody");
   body.innerHTML=`<div class="panel-card"><div class="scroll"><table>
-    <thead><tr><th>Data</th><th>Przedmiot</th><th>Tytuł</th><th>Treść</th><th>Plik</th><th>Status</th></tr></thead>
-    <tbody id="notesBody"><tr><td colspan="6" class="empty">Wczytywanie…</td></tr></tbody></table></div></div>`;
+    <thead><tr><th>Data</th><th>Przedmiot</th><th>Tytuł</th><th>Treść</th><th>Plik</th><th>Status</th><th></th></tr></thead>
+    <tbody id="notesBody"><tr><td colspan="7" class="empty">Wczytywanie…</td></tr></tbody></table></div></div>`;
   const sb=Powtorka.getClient();
   const { data, error } = await sb.from("submissions").select("*").order("created_at",{ascending:false});
   const tb=$("#notesBody");
-  if(error){ tb.innerHTML=`<tr><td colspan="6" class="empty">Błąd: ${esc(error.message)}</td></tr>`; return; }
-  if(!data.length){ tb.innerHTML=`<tr><td colspan="6" class="empty">Brak zgłoszeń. Pojawią się tu, gdy użytkownicy zaczną wrzucać notatki.</td></tr>`; return; }
+  if(error){ tb.innerHTML=`<tr><td colspan="7" class="empty">Błąd: ${esc(error.message)}</td></tr>`; return; }
+  if(!data.length){ tb.innerHTML=`<tr><td colspan="7" class="empty">Brak zgłoszeń. Pojawią się tu, gdy użytkownicy zaczną wrzucać notatki.</td></tr>`; return; }
   tb.innerHTML = data.map(n=>`<tr>
     <td style="white-space:nowrap">${fmtDate(n.created_at)}</td>
     <td>${esc(n.subject||"—")}</td>
@@ -198,9 +198,19 @@ async function renderNotes(){
     <td><select class="mini" data-status="${n.id}">
       ${["nowa","zweryfikowana","odrzucona"].map(s=>`<option value="${s}" ${n.status===s?"selected":""}>${s}</option>`).join("")}
     </select></td>
+    <td style="text-align:right"><button class="btn btn--sm" style="color:var(--no)" data-del="${n.id}" data-delfile="${esc(n.file_path||"")}">Usuń</button></td>
   </tr>`).join("");
   tb.querySelectorAll("[data-status]").forEach(sel=>sel.onchange=()=>setStatus(sel.dataset.status, sel.value));
   tb.querySelectorAll("[data-file]").forEach(b=>b.onclick=()=>downloadFile(b.dataset.file));
+  tb.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>deleteNote(b.dataset.del, b.dataset.delfile));
+}
+async function deleteNote(id, filePath){
+  if(!confirm("Usunąć tę notatkę na stałe?")) return;
+  const sb=Powtorka.getClient();
+  if(filePath){ try{ await sb.storage.from("notatki").remove([filePath]); }catch(e){} }
+  const { error } = await sb.from("submissions").delete().eq("id", id);
+  if(error){ toast("Błąd: "+error.message); return; }
+  toast("Notatka usunięta."); renderNotes();
 }
 async function setStatus(id, status){
   const sb=Powtorka.getClient();

@@ -58,6 +58,24 @@
     border-radius:0 12px 12px 0;padding:18px 20px;font-size:15.5px;line-height:1.7;white-space:pre-wrap;animation:fade .2s}
   .answer .albl{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);display:block;margin-bottom:9px;font-weight:700}
 
+  /* fiszka 3D — stały rozmiar, scrollowalna treść, płynny obrót */
+  .flip{perspective:1600px;height:clamp(300px,56vh,460px);margin-top:18px;cursor:pointer;user-select:none}
+  .flip-inner{position:relative;width:100%;height:100%;transition:transform .6s cubic-bezier(.2,.7,.2,1);transform-style:preserve-3d}
+  .flip.is-flipped .flip-inner{transform:rotateY(180deg)}
+  .flip-face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;display:flex;flex-direction:column;
+    border:1px solid var(--line);border-radius:16px;background:var(--surface);box-shadow:var(--shadow-md);padding:22px 10px 16px 24px}
+  .flip-front{background:linear-gradient(180deg,var(--surface),var(--surface-2))}
+  .flip-back{transform:rotateY(180deg);border-left:3px solid var(--accent)}
+  .flip-corner{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;margin-bottom:12px;padding-right:14px;flex:0 0 auto}
+  .flip-back .flip-corner{color:var(--accent)}
+  .flip-scroll{flex:1;overflow-y:auto;padding-right:14px;overscroll-behavior:contain}
+  .flip-scroll::-webkit-scrollbar{width:8px}
+  .flip-scroll::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:8px}
+  .flip-q{font-family:"Fraunces",serif;font-size:clamp(1.25rem,3.4vw,1.7rem);font-weight:500;line-height:1.3;letter-spacing:-.01em}
+  .flip-qnum{color:var(--ink-faint);font-weight:500}
+  .flip-a{font-size:15.5px;line-height:1.72;white-space:pre-wrap}
+  .flip-tap{flex:0 0 auto;font-size:12px;color:var(--ink-faint);padding-top:12px;padding-right:14px;display:flex;align-items:center;gap:6px}
+
   textarea{width:100%;min-height:130px;resize:vertical;background:var(--paper);border:1px solid var(--line-strong);
     color:var(--ink);border-radius:12px;padding:14px 15px;font:inherit;font-size:15px;outline:none;line-height:1.6;margin-top:4px}
   textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
@@ -226,11 +244,14 @@ function render(){
         <button class="flagbtn fav ${fl.fav?'on':''}" id="flagFav">☆ Ulubione</button>
       </span>
     </div>
-    <div class="qtext"><span class="qnum">${q.id}.</span> ${q.q}</div>`;
+  `;
 
-  if(store.mode==="flash")      inner += renderFlash(q);
-  else if(store.mode==="abcd")  inner += renderABCD(q);
-  else                          inner += renderWrite(q);
+  if(store.mode==="flash"){
+    inner += renderFlash(q);
+  } else {
+    inner += `<div class="qtext"><span class="qnum">${q.id}.</span> ${q.q}</div>`;
+    inner += (store.mode==="abcd") ? renderABCD(q) : renderWrite(q);
+  }
 
   inner += `</div>`;
   stage.innerHTML = inner;
@@ -239,23 +260,35 @@ function render(){
 
 /* ----- FISZKI ----- */
 function renderFlash(q){
-  const shown = answered;
-  let h = `<div id="flashbody">`;
-  if(shown){
-    h += `<div class="answer"><span class="albl">Odpowiedź — ${levelName()}</span>${escapeHTML(levelText(q))}</div>`;
+  return `
+    <div class="flip${answered?' is-flipped':''}" id="flipcard">
+      <div class="flip-inner">
+        <div class="flip-face flip-front">
+          <div class="flip-corner">Pytanie</div>
+          <div class="flip-scroll"><div class="flip-q"><span class="flip-qnum">${q.id}.</span> ${q.q}</div></div>
+          <div class="flip-tap">↻ kliknij kartę, aby zobaczyć odpowiedź</div>
+        </div>
+        <div class="flip-face flip-back">
+          <div class="flip-corner">Odpowiedź · ${levelName()}</div>
+          <div class="flip-scroll"><div class="flip-a">${escapeHTML(levelText(q))}</div></div>
+          <div class="flip-tap">↻ kliknij, aby wrócić do pytania</div>
+        </div>
+      </div>
+    </div>
+    <div class="btnrow">
+      <button class="btn btn--ghost" id="prev">← Wstecz</button>
+      <div id="flashmid"></div>
+      <button class="btn" id="next">Dalej →</button>
+    </div>`;
+}
+function updateFlashMid(q){
+  const mid = $("#flashmid"); if(!mid) return;
+  if(answered){
+    mid.innerHTML = `<div class="self-grade"><button class="btn btn--no" id="again">Powtórzę</button><button class="btn btn--ok" id="know">Umiem ✓</button></div>`;
+    bindGrade(q); markStudied();
+  } else {
+    mid.innerHTML = `<span style="color:var(--ink-faint);font-size:13px">Kliknij fiszkę, aby ją odwrócić</span>`;
   }
-  h += `</div>`;
-  h += `<div class="btnrow">
-    <button class="btn btn--ghost" id="prev">← Wstecz</button>
-    ${ shown
-        ? `<div class="self-grade">
-             <button class="btn btn--no" id="again">Powtórzę</button>
-             <button class="btn btn--ok" id="know">Umiem ✓</button>
-           </div>`
-        : `<button class="btn btn--primary" id="reveal">Pokaż odpowiedź</button>` }
-    <button class="btn" id="next">Dalej →</button>
-  </div>`;
-  return h;
 }
 
 /* ----- ABCD (dopasuj pojęcie do opisu) ----- */
@@ -334,8 +367,14 @@ function wireCard(q){
   if(next) next.onclick=()=>{ goNext(); };
 
   if(store.mode==="flash"){
-    const r=$("#reveal"); if(r) r.onclick=()=>{answered=true;markStudied();render();};
-    bindGrade(q);
+    const flip=$("#flipcard");
+    updateFlashMid(q);
+    if(flip){
+      flip.onclick=()=>{
+        answered = flip.classList.toggle("is-flipped");
+        updateFlashMid(q);
+      };
+    }
   }
   if(store.mode==="abcd"){
     const opts=document.querySelectorAll(".opt");
