@@ -180,6 +180,18 @@
     if (isCloud && user) await pushNow(sub);
   }
 
+  /* ---------------- pytania z bazy (z fallbackiem do plików) ---------------- */
+  async function loadQuestions(subject) {
+    if (!isCloud || !sb) return null;
+    try {
+      const { data, error } = await sb.from("questions")
+        .select("payload,kind,position").eq("subject", subject)
+        .order("position", { ascending: true });
+      if (error || !data || !data.length) return null;
+      return data; // [{payload, kind, position}]
+    } catch (e) { return null; }
+  }
+
   /* ---------------- API procentów (na kafelki) ---------------- */
   // czytamy z lokalnego cache bez sieci — szybki podgląd na stronie głównej
   function masteredCount(sub) {
@@ -195,7 +207,7 @@
     hasCloudConfig: () => HAS_CLOUD_CFG,
     getUser: () => user,
     signUp, signIn, signOut, setLocalProfile,
-    load, save, resetSubject, masteredCount,
+    load, save, resetSubject, masteredCount, loadQuestions,
     getTheme, setTheme, toggleTheme
   };
 })();

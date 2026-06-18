@@ -152,6 +152,7 @@
 /* ---------------- stan (postępy przez Powtorka — konta/sync) ---------------- */
 const SUBJECT = "prawo-administracyjne";
 let store = {};
+let DATA = [];   // pytania: z bazy (Supabase) lub fallback do questions.js
 function saveStore(){ Powtorka.save(SUBJECT, store); }
 
 let deck = [];
@@ -172,7 +173,7 @@ function exTokens(q){ return levelText(q).trim().split(/\s+/).filter(w=>norm(w)!
 
 /* ---------------- budowa talii ---------------- */
 function buildDeck(){
-  let list = QUESTIONS.slice();
+  let list = DATA.slice();
   if(store.cat!=="all") list = list.filter(q=>q.kat===store.cat);
   if(store.onlyhard)   list = list.filter(q=>!store.mastered[q.id]);
   if(store.shuffle)    shuffleArr(list);
@@ -181,10 +182,10 @@ function buildDeck(){
 
 /* ---------------- kategorie ---------------- */
 function fillCats(){
-  const cats = [...new Set(QUESTIONS.map(q=>q.kat))];
+  const cats = [...new Set(DATA.map(q=>q.kat))];
   const sel = $("#catsel");
-  sel.innerHTML = `<option value="all">Wszystko (${QUESTIONS.length})</option>` +
-    cats.map(c=>{const n=QUESTIONS.filter(q=>q.kat===c).length;return `<option value="${c}">${c} (${n})</option>`}).join("");
+  sel.innerHTML = `<option value="all">Wszystko (${DATA.length})</option>` +
+    cats.map(c=>{const n=DATA.filter(q=>q.kat===c).length;return `<option value="${c}">${c} (${n})</option>`}).join("");
   sel.value = store.cat;
 }
 
@@ -193,7 +194,7 @@ function render(){
   const total = deck.length;
   $("#counter").textContent = total? `Pytanie ${idx+1} z ${total}` : "Brak pytań";
   const masteredCount = Object.values(store.mastered).filter(Boolean).length;
-  $("#score").textContent = `Opanowane: ${masteredCount} / ${QUESTIONS.length}`;
+  $("#score").textContent = `Opanowane: ${masteredCount} / ${DATA.length}`;
   $("#barfill").style.width = total? `${(idx)/(total)*100}%` : "0%";
 
   const stage = $("#stage");
@@ -237,7 +238,7 @@ function renderFlash(q){
 /* ----- ABCD (dopasuj pojęcie do opisu) ----- */
 let abcdOptions=[], abcdCorrect=-1;
 function buildABCD(q){
-  const others = QUESTIONS.filter(o=>o.id!==q.id);
+  const others = DATA.filter(o=>o.id!==q.id);
   shuffleArr(others);
   const distract = others.slice(0,3);
   abcdOptions = shuffleArr([{t:q.skrot,ok:true}, ...distract.map(o=>({t:o.skrot,ok:false}))]);
@@ -322,7 +323,7 @@ function wireCard(q){
         if(i!==abcdCorrect) elm.classList.add("wrong");
         if(i===abcdCorrect){ store.mastered[q.id]=true; saveStore(); }
         const mc=Object.values(store.mastered).filter(Boolean).length;
-        $("#score").textContent=`Opanowane: ${mc} / ${QUESTIONS.length}`;
+        $("#score").textContent=`Opanowane: ${mc} / ${DATA.length}`;
       };
     });
   }
@@ -429,7 +430,7 @@ function applyDefaults(){
   store.mastered = store.mastered || {};
 }
 function init(){
-  if(typeof QUESTIONS==="undefined" || !QUESTIONS.length){
+  if(typeof DATA==="undefined" || !DATA.length){
     $("#stage").innerHTML=`<div class="card"><div class="empty">Nie znaleziono pliku z pytaniami (questions.js).</div></div>`; return;
   }
   fillCats();
@@ -443,6 +444,9 @@ function init(){
 async function boot(){
   paintTheme();
   await Powtorka.init();
+  // pytania z bazy; gdy brak chmury/sieci — fallback do questions.js
+  const rows = await Powtorka.loadQuestions(SUBJECT);
+  DATA = rows ? rows.map(r=>r.payload) : (typeof QUESTIONS!=="undefined" ? QUESTIONS.slice() : []);
   store = await Powtorka.load(SUBJECT);
   applyDefaults();
   renderAuthSlot();

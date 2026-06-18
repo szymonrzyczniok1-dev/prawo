@@ -143,12 +143,12 @@ if(!window.PYTANIA){ document.getElementById('quizArea').innerHTML =
   '<div class="card">Nie udało się wczytać pliku <b>data.js</b>. Upewnij się, że leży w tym samym folderze.</div>'; }
 
 const SUBJECT="prawo-karne";
-const P = window.PYTANIA || [];
-const K = window.KAZUSY || [];
+let P = [];   // pytania ABCD: z bazy (Supabase) lub fallback do data.js
+let K = [];   // kazusy
 let store = {};
-let order = P.map((_,i)=>i);
+let order = [];
 let idx = 0;
-let answers = new Array(P.length).fill(null);
+let answers = [];
 const LBL = ['A','B','C','D'];
 
 const quizArea = document.getElementById('quizArea');
@@ -327,6 +327,17 @@ function renderAuthSlot(){
 async function boot(){
   paintTheme();
   await Powtorka.init();
+  // pytania z bazy; gdy brak chmury/sieci — fallback do data.js
+  const rows = await Powtorka.loadQuestions(SUBJECT);
+  if(rows){
+    P = rows.filter(r=>r.kind==='abcd').map(r=>r.payload);
+    K = rows.filter(r=>r.kind==='kazus').map(r=>r.payload);
+  } else {
+    P = window.PYTANIA || [];
+    K = window.KAZUSY || [];
+  }
+  order = P.map((_,i)=>i);
+  answers = new Array(P.length).fill(null);
   store = await Powtorka.load(SUBJECT);
   renderAuthSlot();
   Powtorka.onChange(renderAuthSlot);
