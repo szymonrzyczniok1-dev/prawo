@@ -206,7 +206,14 @@
   }
   // usunięcie własnego konta i danych
   async function deleteAccount() {
-    if (!isCloud || !sb) throw new Error("Tryb lokalny.");
+    if (!isCloud || !sb || !user) throw new Error("Tryb lokalny.");
+    // najpierw pliki notatek (Storage API — SQL nie może ich ruszać)
+    try {
+      const { data: files } = await sb.storage.from("notatki").list(user.id);
+      if (files && files.length) {
+        await sb.storage.from("notatki").remove(files.map(f => user.id + "/" + f.name));
+      }
+    } catch (e) { /* brak plików / brak dostępu — pomijamy */ }
     const { error } = await sb.rpc("delete_my_account");
     if (error) throw error;
     await signOut();
