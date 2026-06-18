@@ -1,0 +1,14 @@
+# Cloudflare Pages — nagłówki odpowiedzi
+
+# Domyślnie: zawsze świeże (rewalidacja przez ETag → szybkie 304).
+# Dzięki temu aktualizacje wchodzą od razu, bez utykania w cache.
+/*
+  Cache-Control: public, max-age=0, must-revalidate
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+
+# Ścieżki dawnych plików z pytaniami — nigdy nie cache'ować (treść jest w bazie).
+/przedmioty/prawo-administracyjne/questions.js
+  Cache-Control: no-store
+/przedmioty/prawo-karne/data.js
+  Cache-Control: no-store
