@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prawo Administracyjne — Powtórka</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..600&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+  :root{ --tile-accent:#2e5e4e; }
+  .panel{max-width:880px;margin:0 auto;padding:0 20px 70px}
+  .phead{text-align:center;padding:34px 0 4px}
+  .phead .eyebrow{margin-bottom:12px}
+  .phead h1{font-size:clamp(1.8rem,4.5vw,2.6rem)}
+  .phead .sub{color:var(--ink-soft);font-size:14.5px;margin-top:8px}
+
+  .controls{display:flex;flex-direction:column;gap:13px;align-items:center;margin:26px 0 6px}
+  .ctl-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center}
+  .ctl-lab{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint);font-weight:700}
+  .segbar{display:inline-flex;gap:4px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-pill);padding:4px}
+  .seg{border:none;background:transparent;color:var(--ink-soft);font:inherit;font-weight:600;font-size:13.5px;
+    padding:8px 16px;border-radius:var(--r-pill);cursor:pointer;transition:.15s var(--ease);white-space:nowrap}
+  .seg:hover{color:var(--ink)}
+  .seg.active{background:var(--surface);color:var(--accent);box-shadow:var(--shadow-sm)}
+  .seg.sm{padding:6px 13px;font-size:12.5px}
+  select{font:inherit;font-size:13.5px;padding:8px 12px;border-radius:10px;border:1px solid var(--line-strong);
+    background:var(--surface);color:var(--ink);cursor:pointer;outline:none}
+  select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .chk{display:inline-flex;align-items:center;gap:8px;color:var(--ink-soft);font-size:13px;cursor:pointer;user-select:none}
+  .chk input{accent-color:var(--accent);width:16px;height:16px}
+
+  .meta{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--ink-soft);margin:22px 2px 8px}
+  .bar{height:6px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-pill);overflow:hidden}
+  .bar>i{display:block;height:100%;width:0;background:var(--accent);transition:width .35s var(--ease)}
+
+  .card{padding:26px 26px 22px;margin-top:16px;animation:rise .35s var(--ease)}
+  .chip{display:inline-block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;
+    color:var(--accent);background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 22%,transparent);
+    padding:5px 11px;border-radius:var(--r-pill)}
+  .qtext{font-family:"Fraunces",serif;font-size:1.45rem;font-weight:500;line-height:1.32;margin:16px 0 2px;letter-spacing:-.01em}
+  .qnum{color:var(--ink-faint);font-weight:500}
+
+  .opts{display:flex;flex-direction:column;gap:10px;margin-top:18px}
+  .opt{display:flex;gap:13px;align-items:flex-start;background:var(--surface-2);border:1px solid var(--line);
+    border-radius:12px;padding:14px 16px;cursor:pointer;transition:.13s var(--ease);font-size:15px;line-height:1.5}
+  .opt:hover{border-color:var(--line-strong);transform:translateX(2px)}
+  .opt .let{flex:0 0 27px;height:27px;border:1px solid var(--line-strong);border-radius:50%;display:grid;place-items:center;
+    font-size:13px;color:var(--ink-faint);font-weight:700}
+  .opt.correct{background:var(--ok-bg);border-color:var(--ok-line)}
+  .opt.correct .let{border-color:var(--ok);color:var(--ok)}
+  .opt.wrong{background:var(--no-bg);border-color:var(--no-line)}
+  .opt.wrong .let{border-color:var(--no);color:var(--no)}
+  .opt.disabled{cursor:default;opacity:.9;transform:none}
+
+  .answer{margin-top:18px;background:var(--surface-2);border:1px solid var(--line);border-left:3px solid var(--accent);
+    border-radius:0 12px 12px 0;padding:18px 20px;font-size:15.5px;line-height:1.7;white-space:pre-wrap;animation:fade .2s}
+  .answer .albl{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);display:block;margin-bottom:9px;font-weight:700}
+
+  textarea{width:100%;min-height:130px;resize:vertical;background:var(--paper);border:1px solid var(--line-strong);
+    color:var(--ink);border-radius:12px;padding:14px 15px;font:inherit;font-size:15px;outline:none;line-height:1.6;margin-top:4px}
+  textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .write-stat{font-size:13px;color:var(--ink-soft);margin:4px 2px 10px}
+  .tokenline{margin-top:14px;font-size:16px;line-height:2;word-spacing:1px}
+  .tok{padding:2px 6px;border-radius:7px;margin-right:3px;display:inline-block}
+  .tok.ok{background:var(--ok-bg);color:var(--ok);border:1px solid var(--ok-line)}
+  .tok.cur{background:var(--accent-soft);color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 35%,transparent)}
+  .tok.todo{color:var(--ink-faint)}
+  .hintbad{color:var(--no);font-size:13.5px;margin-top:12px}
+  .hintgood{color:var(--ok);font-size:14px;margin-top:12px;font-weight:600}
+
+  .btnrow{display:flex;justify-content:space-between;gap:10px;margin-top:22px;flex-wrap:wrap}
+  .self-grade{display:flex;gap:10px}
+  .gap{flex:1}
+  .empty{text-align:center;color:var(--ink-soft);padding:42px 12px;line-height:1.7}
+  .pfoot{text-align:center;color:var(--ink-faint);font-size:12.5px;margin-top:34px;line-height:1.8;padding-top:22px;border-top:1px solid var(--line)}
+  .toollink{color:var(--accent);cursor:pointer;text-decoration:underline;font-weight:600}
+  @media(max-width:560px){ .qtext{font-size:1.2rem} .panel{padding:0 14px 56px} }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="inner">
+    <a class="brand" href="../../index.html"><span class="mark">P</span><span><b>Powtórki</b><small>Prawo administracyjne</small></span></a>
+    <div class="spacer"></div>
+    <a class="btn btn--ghost btn--sm" href="../../index.html">← Przedmioty</a>
+    <button class="iconbtn" id="themeBtn" title="Przełącz motyw" aria-label="Przełącz motyw"></button>
+    <div id="authSlot"></div>
+  </div>
+</header>
+
+<main class="panel">
+  <div class="phead">
+    <div class="eyebrow">Rok II · Część ogólna</div>
+    <h1>Prawo Administracyjne</h1>
+    <div class="sub">Przygotowanie do egzaminu · dr Marchaj · skrót / średni / maksymalny</div>
+  </div>
+
+  <div class="controls">
+    <div class="ctl-row">
+      <div class="segbar" id="modebar">
+        <button class="seg active" data-mode="flash">Fiszki</button>
+        <button class="seg" data-mode="abcd">Test ABCD</button>
+        <button class="seg" data-mode="write">Pisanie</button>
+      </div>
+    </div>
+    <div class="ctl-row">
+      <span class="ctl-lab">Poziom</span>
+      <div class="segbar" id="levelbar">
+        <button class="seg sm" data-level="skrot">Skrót</button>
+        <button class="seg sm active" data-level="sredni">Średni</button>
+        <button class="seg sm" data-level="max">Maksymalny</button>
+      </div>
+    </div>
+    <div class="ctl-row" id="writesubwrap" style="display:none">
+      <span class="ctl-lab">Tryb pisania</span>
+      <div class="segbar" id="subbar">
+        <button class="seg sm active" data-sub="compare">Porównaj sam</button>
+        <button class="seg sm" data-sub="exact">1 do 1</button>
+      </div>
+    </div>
+    <div class="ctl-row">
+      <span class="ctl-lab">Zakres</span>
+      <select id="catsel"></select>
+      <label class="chk"><input type="checkbox" id="shuffle"> Losuj kolejność</label>
+      <label class="chk"><input type="checkbox" id="onlyhard"> Tylko niezaliczone</label>
+    </div>
+  </div>
+
+  <div class="meta">
+    <span id="counter">Pytanie 0 z 0</span>
+    <span id="score">Opanowane: 0</span>
+  </div>
+  <div class="bar"><i id="barfill"></i></div>
+
+  <div id="stage"></div>
+
+  <div class="pfoot">
+    Materiał na podstawie opracowania wykładów i ćwiczeń (dr Marchaj) oraz skryptu ustrojowego.<br>
+    Pytania mają charakter pomocniczy. <span class="toollink" id="resetbtn">Wyczyść postępy nauki</span>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script src="../../assets/config.js"></script>
+<script src="../../assets/store.js"></script>
+<script src="questions.js"></script>
+<script>
+/* ---------------- stan (postępy przez Powtorka — konta/sync) ---------------- */
+const SUBJECT = "prawo-administracyjne";
+let store = {};
+function saveStore(){ Powtorka.save(SUBJECT, store); }
+
+let deck = [];
+let idx = 0;
+let answered = false;
+let exactProgress = 0;
+
+/* ---------------- pomoc ---------------- */
+const $ = s=>document.querySelector(s);
+function levelText(q){ return q[store.level] || q.sredni || q.skrot || ""; }
+function shuffleArr(a){ for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];} return a; }
+function norm(w){
+  return w.toLowerCase()
+    .replace(/[„""».,;:()\[\]{}!?«…\-–—"'`/]/g,"")
+    .replace(/\s+/g,"").trim();
+}
+function exTokens(q){ return levelText(q).trim().split(/\s+/).filter(w=>norm(w)!==""); }
+
+/* ---------------- budowa talii ---------------- */
+function buildDeck(){
+  let list = QUESTIONS.slice();
+  if(store.cat!=="all") list = list.filter(q=>q.kat===store.cat);
+  if(store.onlyhard)   list = list.filter(q=>!store.mastered[q.id]);
+  if(store.shuffle)    shuffleArr(list);
+  deck = list; idx=0; answered=false; exactProgress=0;
+}
+
+/* ---------------- kategorie ---------------- */
+function fillCats(){
+  const cats = [...new Set(QUESTIONS.map(q=>q.kat))];
+  const sel = $("#catsel");
+  sel.innerHTML = `<option value="all">Wszystko (${QUESTIONS.length})</option>` +
+    cats.map(c=>{const n=QUESTIONS.filter(q=>q.kat===c).length;return `<option value="${c}">${c} (${n})</option>`}).join("");
+  sel.value = store.cat;
+}
+
+/* ---------------- render ---------------- */
+function render(){
+  const total = deck.length;
+  $("#counter").textContent = total? `Pytanie ${idx+1} z ${total}` : "Brak pytań";
+  const masteredCount = Object.values(store.mastered).filter(Boolean).length;
+  $("#score").textContent = `Opanowane: ${masteredCount} / ${QUESTIONS.length}`;
+  $("#barfill").style.width = total? `${(idx)/(total)*100}%` : "0%";
+
+  const stage = $("#stage");
+  if(!total){ stage.innerHTML = `<div class="card"><div class="empty">Brak pytań dla wybranego zakresu.<br>Odznacz „Tylko niezaliczone" lub zmień zakres.</div></div>`; return; }
+  const q = deck[idx];
+
+  let inner = `<div class="card">
+    <span class="chip">${q.kat}</span>
+    <div class="qtext"><span class="qnum">${q.id}.</span> ${q.q}</div>`;
+
+  if(store.mode==="flash")      inner += renderFlash(q);
+  else if(store.mode==="abcd")  inner += renderABCD(q);
+  else                          inner += renderWrite(q);
+
+  inner += `</div>`;
+  stage.innerHTML = inner;
+  wireCard(q);
+}
+
+/* ----- FISZKI ----- */
+function renderFlash(q){
+  const shown = answered;
+  let h = `<div id="flashbody">`;
+  if(shown){
+    h += `<div class="answer"><span class="albl">Odpowiedź — ${levelName()}</span>${escapeHTML(levelText(q))}</div>`;
+  }
+  h += `</div>`;
+  h += `<div class="btnrow">
+    <button class="btn btn--ghost" id="prev">← Wstecz</button>
+    ${ shown
+        ? `<div class="self-grade">
+             <button class="btn btn--no" id="again">Powtórzę</button>
+             <button class="btn btn--ok" id="know">Umiem ✓</button>
+           </div>`
+        : `<button class="btn btn--primary" id="reveal">Pokaż odpowiedź</button>` }
+    <button class="btn" id="next">Dalej →</button>
+  </div>`;
+  return h;
+}
+
+/* ----- ABCD (dopasuj pojęcie do opisu) ----- */
+let abcdOptions=[], abcdCorrect=-1;
+function buildABCD(q){
+  const others = QUESTIONS.filter(o=>o.id!==q.id);
+  shuffleArr(others);
+  const distract = others.slice(0,3);
+  abcdOptions = shuffleArr([{t:q.skrot,ok:true}, ...distract.map(o=>({t:o.skrot,ok:false}))]);
+  abcdCorrect = abcdOptions.findIndex(o=>o.ok);
+}
+function renderABCD(q){
+  if(!answered) buildABCD(q);
+  const letters=["A","B","C","D"];
+  let h = `<div style="margin-top:8px;color:var(--ink-soft);font-size:14px">Wybierz opis pasujący do pojęcia:</div><div class="opts" id="opts">`;
+  abcdOptions.forEach((o,i)=>{
+    h+=`<div class="opt" data-i="${i}"><div class="let">${letters[i]}</div><div>${escapeHTML(o.t)}</div></div>`;
+  });
+  h += `</div>`;
+  h += `<div class="btnrow"><button class="btn btn--ghost" id="prev">← Wstecz</button><div class="gap"></div><button class="btn btn--primary" id="next">Dalej →</button></div>`;
+  return h;
+}
+
+/* ----- PISANIE ----- */
+function renderWrite(q){
+  if(store.sub==="exact") return renderExact(q);
+  let h = `<textarea id="ta" placeholder="Napisz odpowiedź własnymi słowami...">${store._draft||""}</textarea>`;
+  if(answered){
+    h += `<div class="answer"><span class="albl">Wzorcowa odpowiedź — ${levelName()}</span>${escapeHTML(levelText(q))}</div>
+      <div class="self-grade" style="margin-top:16px;justify-content:center"><button class="btn btn--no" id="again">Powtórzę</button><button class="btn btn--ok" id="know">Umiałem ✓</button></div>`;
+  }
+  h += `<div class="btnrow">
+      <button class="btn btn--ghost" id="prev">← Wstecz</button>
+      ${answered? "" : `<button class="btn btn--primary" id="check">Sprawdź / pokaż wzór</button>`}
+      <button class="btn" id="next">Dalej →</button>
+    </div>`;
+  return h;
+}
+function renderExact(q){
+  const target = exTokens(q);
+  const done = exactProgress>=target.length;
+  let h = `<div class="write-stat">Tryb <b>1 do 1</b> — wpisuj dalszy ciąg; zaliczają się słowa do pierwszej pomyłki. Postęp: <b>${exactProgress}/${target.length}</b> słów.
+    ${store.level!=="skrot"?'<span style="color:var(--accent)"> (wskazówka: poziom „Skrót" jest najlepszy do tego trybu)</span>':''}</div>`;
+  h += `<div class="tokenline">`;
+  target.forEach((t,i)=>{
+    if(i<exactProgress) h+=`<span class="tok ok">${escapeHTML(t)}</span> `;
+    else if(i===exactProgress) h+=`<span class="tok cur">•••</span> `;
+    else h+=`<span class="tok todo">•••</span> `;
+  });
+  h += `</div>`;
+  if(done){
+    h += `<div class="hintgood">✓ Brawo! Cała odpowiedź odtworzona bezbłędnie.</div>`;
+    h += `<div class="btnrow"><button class="btn btn--ghost" id="prev">← Wstecz</button><button class="btn btn--ok" id="know">Opanowane ✓</button><button class="btn btn--primary" id="next">Dalej →</button></div>`;
+  } else {
+    h += `<textarea id="ta" placeholder="Wpisz dalszy ciąg odpowiedzi (od podświetlonego słowa)..."></textarea>`;
+    h += `<div id="exacthint"></div>`;
+    h += `<div class="btnrow">
+        <button class="btn btn--ghost" id="prev">← Wstecz</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn--sm" id="resetword">Reset słów</button>
+          <button class="btn btn--primary" id="checkexact">Sprawdź</button>
+        </div>
+        <button class="btn" id="next">Dalej →</button>
+      </div>`;
+  }
+  return h;
+}
+
+/* ---------------- interakcje ---------------- */
+function wireCard(q){
+  const prev=$("#prev"), next=$("#next");
+  if(prev) prev.onclick=()=>{ if(idx>0){idx--;resetCardState();render();} };
+  if(next) next.onclick=()=>{ goNext(); };
+
+  if(store.mode==="flash"){
+    const r=$("#reveal"); if(r) r.onclick=()=>{answered=true;render();};
+    bindGrade(q);
+  }
+  if(store.mode==="abcd"){
+    const opts=document.querySelectorAll(".opt");
+    opts.forEach(elm=>{
+      elm.onclick=()=>{
+        if(answered) return;
+        answered=true;
+        const i=+elm.dataset.i;
+        opts.forEach(o=>o.classList.add("disabled"));
+        if(opts[abcdCorrect]) opts[abcdCorrect].classList.add("correct");
+        if(i!==abcdCorrect) elm.classList.add("wrong");
+        if(i===abcdCorrect){ store.mastered[q.id]=true; saveStore(); }
+        const mc=Object.values(store.mastered).filter(Boolean).length;
+        $("#score").textContent=`Opanowane: ${mc} / ${QUESTIONS.length}`;
+      };
+    });
+  }
+  if(store.mode==="write"){
+    if(store.sub==="compare"){
+      const ta=$("#ta");
+      if(ta) ta.oninput=()=>{store._draft=ta.value;};
+      const c=$("#check"); if(c) c.onclick=()=>{answered=true;render();};
+      bindGrade(q);
+    } else {
+      const ce=$("#checkexact"); if(ce) ce.onclick=()=>checkExact(q);
+      const ta=$("#ta"); if(ta){ ta.focus(); ta.onkeydown=e=>{ if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();checkExact(q);} }; }
+      const rw=$("#resetword"); if(rw) rw.onclick=()=>{exactProgress=0;render();};
+      bindGrade(q);
+    }
+  }
+}
+function bindGrade(q){
+  const k=$("#know"), a=$("#again");
+  if(k) k.onclick=()=>{ store.mastered[q.id]=true; saveStore(); goNext(); };
+  if(a) a.onclick=()=>{ store.mastered[q.id]=false; saveStore(); goNext(); };
+}
+function checkExact(q){
+  const target = exTokens(q);
+  const ta=$("#ta"); if(!ta) return;
+  const typed = ta.value.trim().length? ta.value.trim().split(/\s+/) : [];
+  let matched=0;
+  for(let i=0;i<typed.length && (exactProgress+i)<target.length;i++){
+    if(norm(typed[i])===norm(target[exactProgress+i])) matched++;
+    else break;
+  }
+  exactProgress += matched;
+  render();
+  if(exactProgress>=target.length){ store.mastered[q.id]=true; saveStore(); render(); return; }
+  const hint=$("#exacthint");
+  if(hint){
+    if(matched>0) hint.innerHTML=`<div class="hintgood">✓ Zaliczono ${matched} słów. Kontynuuj od podświetlonego.</div>`;
+    else hint.innerHTML=`<div class="hintbad">✗ Pierwsze słowo się nie zgadza — spróbuj ponownie (bez podglądu).</div>`;
+  }
+}
+function resetCardState(){ answered=false; exactProgress=0; store._draft=""; }
+function goNext(){
+  if(idx<deck.length-1){ idx++; resetCardState(); render(); }
+  else {
+    resetCardState();
+    $("#stage").innerHTML=`<div class="card"><div class="empty">🎉 To było ostatnie pytanie w tym zakresie.<br><br>
+      <button class="btn btn--primary" id="restart">Zacznij od nowa</button></div></div>`;
+    $("#restart").onclick=()=>{ buildDeck(); render(); };
+    $("#barfill").style.width="100%";
+  }
+}
+
+/* ---------------- helpers ---------------- */
+function levelName(){ return store.level==="skrot"?"Skrót":store.level==="max"?"Maksymalny":"Średni"; }
+function escapeHTML(s){ return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+/* ---------------- kontrolki ---------------- */
+function activate(barId, attr, val){
+  document.querySelectorAll(`#${barId} .seg`).forEach(s=>s.classList.toggle("active", s.dataset[attr]===val));
+}
+$("#modebar").addEventListener("click",e=>{
+  const s=e.target.closest(".seg"); if(!s) return;
+  store.mode=s.dataset.mode; saveStore(); activate("modebar","mode",store.mode);
+  $("#writesubwrap").style.display = store.mode==="write"?"flex":"none";
+  resetCardState(); render();
+});
+$("#levelbar").addEventListener("click",e=>{
+  const s=e.target.closest(".seg"); if(!s) return;
+  store.level=s.dataset.level; saveStore(); activate("levelbar","level",store.level);
+  resetCardState(); render();
+});
+$("#subbar").addEventListener("click",e=>{
+  const s=e.target.closest(".seg"); if(!s) return;
+  store.sub=s.dataset.sub; saveStore(); activate("subbar","sub",store.sub);
+  resetCardState(); render();
+});
+$("#catsel").addEventListener("change",e=>{ store.cat=e.target.value; saveStore(); buildDeck(); render(); });
+$("#shuffle").addEventListener("change",e=>{ store.shuffle=e.target.checked; saveStore(); buildDeck(); render(); });
+$("#onlyhard").addEventListener("change",e=>{ store.onlyhard=e.target.checked; saveStore(); buildDeck(); render(); });
+$("#resetbtn").addEventListener("click",()=>{
+  if(confirm("Wyczyścić zapisane postępy (opanowane pytania)?")){ store.mastered={}; saveStore(); render(); }
+});
+
+/* ---------------- topbar: motyw + użytkownik ---------------- */
+const ICON={ sun:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M19.1 4.9l-1.8 1.8M6.7 17.3l-1.8 1.8"/></svg>',
+  moon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></svg>' };
+function paintTheme(){ $("#themeBtn").innerHTML = Powtorka.getTheme()==="dark"? ICON.sun : ICON.moon; }
+$("#themeBtn").onclick=()=>{ Powtorka.toggleTheme(); paintTheme(); };
+function renderAuthSlot(){
+  const slot=$("#authSlot"), u=Powtorka.getUser();
+  if(u){ const ini=(u.name||"?").trim().slice(0,2).toUpperCase();
+    slot.innerHTML=`<span class="userchip" style="cursor:default"><span class="avatar">${ini}</span><span class="nm">${u.name}</span></span>`; }
+  else { slot.innerHTML=`<a class="btn btn--primary btn--sm" href="../../index.html">Zaloguj się</a>`; }
+}
+
+/* ---------------- init ---------------- */
+function applyDefaults(){
+  store.mode   = store.mode   || "flash";
+  store.level  = store.level  || "sredni";
+  store.sub    = store.sub    || "compare";
+  store.cat    = store.cat    || "all";
+  store.shuffle= store.shuffle|| false;
+  store.onlyhard=store.onlyhard|| false;
+  store.mastered = store.mastered || {};
+}
+function init(){
+  if(typeof QUESTIONS==="undefined" || !QUESTIONS.length){
+    $("#stage").innerHTML=`<div class="card"><div class="empty">Nie znaleziono pliku z pytaniami (questions.js).</div></div>`; return;
+  }
+  fillCats();
+  activate("modebar","mode",store.mode);
+  activate("levelbar","level",store.level);
+  activate("subbar","sub",store.sub);
+  $("#writesubwrap").style.display = store.mode==="write"?"flex":"none";
+  $("#shuffle").checked=store.shuffle; $("#onlyhard").checked=store.onlyhard;
+  buildDeck(); render();
+}
+async function boot(){
+  paintTheme();
+  await Powtorka.init();
+  store = await Powtorka.load(SUBJECT);
+  applyDefaults();
+  renderAuthSlot();
+  Powtorka.onChange(renderAuthSlot);
+  init();
+}
+boot();
+</script>
+</body>
+</html>

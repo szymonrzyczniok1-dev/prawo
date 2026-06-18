@@ -3,472 +3,328 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Prawo Administracyjne — Powtórka</title>
-<style>
-  :root{
-    --bg:#0b1220; --bg2:#0e1830; --card:#13203a; --card2:#172b46;
-    --panel:#13203a; --line:#26324a; --line2:#2f3e5c;
-    --txt:#e7edf6; --muted:#9fb0c8; --muted2:#76879f;
-    --gold:#d8b46a; --gold-d:#b9933f;
-    --green:#4ec98a; --green-bg:#173a2c; --red:#e06a6a; --red-bg:#3a1c1c;
-    --blue:#5b8fd6;
-    --radius:14px;
-  }
-  *{box-sizing:border-box}
-  html,body{margin:0;padding:0}
-  body{
-    background:radial-gradient(1200px 700px at 50% -10%, #14203a 0%, var(--bg) 60%);
-    color:var(--txt); font-family:"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    min-height:100vh; line-height:1.5; -webkit-font-smoothing:antialiased;
-  }
-  .wrap{max-width:880px;margin:0 auto;padding:26px 18px 60px}
-  header{text-align:center;margin-bottom:6px}
-  h1{font-family:Georgia,"Times New Roman",serif;font-size:30px;margin:0 0 4px;letter-spacing:.3px}
-  .sub{color:var(--muted);font-size:14px}
-  .hr{height:2px;background:linear-gradient(90deg,transparent,var(--gold-d),transparent);margin:16px 0 18px;border:0}
-
-  /* control rows */
-  .controls{display:flex;flex-direction:column;gap:12px;align-items:center;margin-bottom:14px}
-  .segbar{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
-  .seg{
-    background:#101b31;border:1px solid var(--line);color:var(--muted);
-    padding:9px 18px;border-radius:999px;cursor:pointer;font-size:14px;font-weight:600;
-    transition:.15s; user-select:none;
-  }
-  .seg:hover{border-color:var(--line2);color:var(--txt)}
-  .seg.active{background:var(--gold);color:#1a1206;border-color:var(--gold)}
-  .seg.sm{padding:6px 14px;font-size:12.5px;font-weight:600}
-  .seg.sub.active{background:#22344f;color:var(--txt);border-color:var(--blue)}
-  .row-lab{font-size:11px;letter-spacing:1.5px;color:var(--muted2);text-transform:uppercase;margin-right:6px;align-self:center}
-  .selectwrap{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center}
-  select{
-    background:#101b31;border:1px solid var(--line);color:var(--txt);
-    padding:7px 12px;border-radius:10px;font-size:13px;cursor:pointer;outline:none
-  }
-  .chk{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:13px;cursor:pointer}
-  .chk input{accent-color:var(--gold);width:15px;height:15px}
-
-  /* progress */
-  .meta{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted);margin:14px 2px 6px}
-  .bar{height:6px;background:#101b31;border-radius:999px;overflow:hidden;border:1px solid var(--line)}
-  .bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--gold-d),var(--gold));transition:width .3s}
-
-  /* card */
-  .card{
-    background:linear-gradient(180deg,var(--card),#101a30);
-    border:1px solid var(--line);border-radius:var(--radius);
-    padding:22px 22px 20px;margin-top:14px;box-shadow:0 18px 40px -28px #000;
-  }
-  .chip{display:inline-block;background:#1c2b46;border:1px solid var(--line2);color:var(--gold);
-    font-size:11px;letter-spacing:1px;text-transform:uppercase;padding:4px 11px;border-radius:999px;font-weight:700}
-  .qtext{font-size:19px;font-weight:600;margin:14px 0 4px;line-height:1.45}
-  .qnum{color:var(--muted2);font-weight:700}
-
-  /* answers / abcd */
-  .opts{display:flex;flex-direction:column;gap:10px;margin-top:16px}
-  .opt{
-    display:flex;gap:13px;align-items:flex-start;background:#0f1b31;border:1px solid var(--line);
-    border-radius:12px;padding:13px 15px;cursor:pointer;transition:.13s;font-size:14.5px
-  }
-  .opt:hover{border-color:var(--line2);background:#12203a}
-  .opt .let{
-    flex:0 0 26px;height:26px;border:1px solid var(--line2);border-radius:50%;
-    display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--muted);font-weight:700
-  }
-  .opt.correct{background:var(--green-bg);border-color:var(--green)}
-  .opt.correct .let{border-color:var(--green);color:var(--green)}
-  .opt.wrong{background:var(--red-bg);border-color:var(--red)}
-  .opt.wrong .let{border-color:var(--red);color:var(--red)}
-  .opt.disabled{cursor:default;opacity:.85}
-
-  /* flashcard answer */
-  .answer{
-    margin-top:16px;background:#0f1b31;border:1px solid var(--line);border-radius:12px;
-    padding:16px 18px;font-size:15px;color:var(--txt);white-space:pre-wrap;animation:fade .2s
-  }
-  .answer .albl{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold);display:block;margin-bottom:7px}
-  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
-
-  /* writing */
-  textarea{
-    width:100%;min-height:120px;resize:vertical;background:#0c1628;border:1px solid var(--line2);
-    color:var(--txt);border-radius:12px;padding:13px 14px;font-size:15px;font-family:inherit;outline:none;line-height:1.55
-  }
-  textarea:focus{border-color:var(--gold-d)}
-  .write-stat{font-size:13px;color:var(--muted);margin:10px 2px}
-  .tokenline{margin-top:14px;font-size:15.5px;line-height:1.9;word-spacing:1px}
-  .tok{padding:2px 5px;border-radius:6px;margin-right:2px;display:inline-block}
-  .tok.ok{background:var(--green-bg);color:var(--green);border:1px solid #245e44}
-  .tok.cur{background:#2a2410;color:var(--gold);border:1px solid var(--gold-d)}
-  .tok.todo{color:var(--muted2)}
-  .hintbad{color:var(--red);font-size:13.5px;margin-top:10px}
-  .hintgood{color:var(--green);font-size:14px;margin-top:10px;font-weight:600}
-
-  /* buttons */
-  .btnrow{display:flex;justify-content:space-between;gap:10px;margin-top:20px;flex-wrap:wrap}
-  .btn{
-    background:#15233d;border:1px solid var(--line2);color:var(--txt);
-    padding:11px 20px;border-radius:11px;cursor:pointer;font-size:14px;font-weight:600;transition:.13s
-  }
-  .btn:hover{background:#1b2c4a}
-  .btn:disabled{opacity:.4;cursor:not-allowed}
-  .btn.primary{background:var(--gold);color:#1a1206;border-color:var(--gold)}
-  .btn.primary:hover{filter:brightness(1.06)}
-  .btn.ghost{background:transparent}
-  .btn.good{background:var(--green-bg);border-color:var(--green);color:var(--green)}
-  .btn.again{background:var(--red-bg);border-color:var(--red);color:var(--red)}
-  .gap{flex:1}
-
-  .self-grade{display:flex;gap:10px;margin-top:16px;justify-content:center}
-
-  footer{text-align:center;color:var(--muted2);font-size:12px;margin-top:30px;line-height:1.6}
-  footer a{color:var(--muted)}
-  .toollink{color:var(--gold-d);cursor:pointer;text-decoration:underline}
-  .empty{text-align:center;color:var(--muted);padding:40px 10px}
-  @media(max-width:560px){h1{font-size:24px}.qtext{font-size:17px}.wrap{padding:18px 12px 50px}}
-</style>
+<title>Powtórki — panel nauki do studiów prawniczych</title>
+<meta name="description" content="Panel powtórkowy do egzaminów na studiach prawniczych — fiszki, testy ABCD, kazusy. Postępy zapisywane na koncie.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..600&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <h1>Prawo Administracyjne — Powtórka</h1>
-    <div class="sub">Część ogólna · przygotowanie do egzaminu · dr Marchaj</div>
-  </header>
-  <hr class="hr">
 
-  <div class="controls">
-    <div class="segbar" id="modebar">
-      <div class="seg active" data-mode="flash">Fiszki</div>
-      <div class="seg" data-mode="abcd">Test ABCD</div>
-      <div class="seg" data-mode="write">Pisanie</div>
-    </div>
-
-    <div class="selectwrap">
-      <span class="row-lab">Poziom</span>
-      <div class="segbar" id="levelbar">
-        <div class="seg sm" data-level="skrot">Skrót</div>
-        <div class="seg sm active" data-level="sredni">Średni</div>
-        <div class="seg sm" data-level="max">Maksymalny</div>
-      </div>
-    </div>
-
-    <div class="selectwrap" id="writesubwrap" style="display:none">
-      <span class="row-lab">Tryb pisania</span>
-      <div class="segbar" id="subbar">
-        <div class="seg sm sub active" data-sub="compare">Porównaj sam</div>
-        <div class="seg sm sub" data-sub="exact">1 do 1</div>
-      </div>
-    </div>
-
-    <div class="selectwrap">
-      <span class="row-lab">Zakres</span>
-      <select id="catsel"></select>
-      <label class="chk"><input type="checkbox" id="shuffle"> Losuj kolejność</label>
-      <label class="chk"><input type="checkbox" id="onlyhard"> Tylko niezaliczone</label>
-    </div>
+<!-- ====================== TOPBAR ====================== -->
+<header class="topbar">
+  <div class="inner">
+    <a class="brand" href="index.html" aria-label="Powtórki — strona główna">
+      <span class="mark">P</span>
+      <span><b>Powtórki</b><small>Studia prawnicze</small></span>
+    </a>
+    <div class="spacer"></div>
+    <span class="modechip" id="modechip" title="Tryb zapisu postępów"><span class="dot"></span><span id="modechipTxt">tryb lokalny</span></span>
+    <button class="iconbtn" id="themeBtn" title="Przełącz motyw" aria-label="Przełącz motyw"></button>
+    <div id="authSlot"></div>
   </div>
+</header>
 
-  <div class="meta">
-    <span id="counter">Pytanie 0 z 0</span>
-    <span id="score">Opanowane: 0</span>
-  </div>
-  <div class="bar"><i id="barfill"></i></div>
+<div id="userMenu" class="menu"></div>
 
-  <div id="stage"></div>
+<!-- ====================== TREŚĆ ====================== -->
+<main class="wrap">
 
-  <footer>
-    Materiał na podstawie opracowania wykładów i ćwiczeń (dr Marchaj) oraz skryptu ustrojowego.<br>
-    Pytania mają charakter pomocniczy. <span class="toollink" id="resetbtn">Wyczyść postępy nauki</span>
+  <section class="hero">
+    <div class="eyebrow" style="margin-bottom:14px">Powtórka do egzaminów</div>
+    <h1>Naucz się mądrze.<br>Powtarzaj systematycznie.</h1>
+    <p class="lead">Jedno miejsce na wszystkie przedmioty. Fiszki, testy ABCD i kazusy.
+      Twoje postępy zapisują się na koncie i są dostępne na każdym urządzeniu.</p>
+  </section>
+
+  <!-- okruszki / nawigacja -->
+  <nav class="crumbs" id="crumbs"></nav>
+
+  <!-- WIDOK 1: wybór roku -->
+  <section id="viewYears">
+    <div class="section-head">
+      <h2>Wybierz rok studiów</h2>
+    </div>
+    <div class="tiles stagger" id="yearGrid"></div>
+  </section>
+
+  <!-- WIDOK 2: wybór przedmiotu -->
+  <section id="viewSubjects" hidden>
+    <div class="section-head">
+      <h2 id="subjectsTitle">Przedmioty</h2>
+      <button class="btn btn--ghost btn--sm" id="backToYears">← Lata studiów</button>
+    </div>
+    <div class="tiles stagger" id="subjectGrid"></div>
+  </section>
+
+  <footer class="foot">
+    Materiały mają charakter pomocniczy w nauce własnej.<br>
+    Powtórki · panel nauki · <span id="yearNow"></span>
   </footer>
+</main>
+
+<!-- ====================== MODAL LOGOWANIA ====================== -->
+<div class="overlay" id="authOverlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+    <div class="modal-head">
+      <button class="iconbtn close" id="authClose" aria-label="Zamknij">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div id="authBody"></div>
+  </div>
 </div>
 
-<script src="questions.js"></script>
+<div class="toast" id="toast"></div>
+
+<script src="assets/config.js"></script>
+<script src="assets/store.js"></script>
 <script>
-/* ---------------- stan ---------------- */
-const LS = "praw_adm_panel_v1";
-let store = loadStore();
-function loadStore(){ try{return JSON.parse(localStorage.getItem(LS))||{}}catch(e){return {}} }
-function saveStore(){ try{localStorage.setItem(LS, JSON.stringify(store))}catch(e){} }
-store.mode   = store.mode   || "flash";
-store.level  = store.level  || "sredni";
-store.sub    = store.sub    || "compare";
-store.cat    = store.cat    || "all";
-store.shuffle= store.shuffle|| false;
-store.onlyhard=store.onlyhard|| false;
-store.mastered = store.mastered || {};   // id -> true
+/* ============================ DANE ============================ */
+const SUBJECTS = [
+  { id:"prawo-administracyjne", name:"Prawo Administracyjne", mono:"Ad", accent:"#2e5e4e",
+    desc:"Część ogólna · dr Marchaj", total:87, unit:"zagadnień", ready:true,
+    url:"przedmioty/prawo-administracyjne/index.html", modes:"Fiszki · ABCD · Pisanie" },
+  { id:"prawo-karne", name:"Prawo Karne", mono:"Ka", accent:"#a25140",
+    desc:"Część ogólna · dr Grudecki", total:30, unit:"pytań", ready:true,
+    url:"przedmioty/prawo-karne/index.html", modes:"Test ABCD · Kazusy" },
+  { id:"prawo-cywilne", name:"Prawo Cywilne", mono:"Cy", accent:"#3c4a7a",
+    desc:"Zobowiązania", ready:false, modes:"w przygotowaniu" },
+  { id:"prawo-konstytucyjne", name:"Prawo Konstytucyjne", mono:"Ko", accent:"#7a3140",
+    desc:"Ustrój RP", ready:false, modes:"w przygotowaniu" },
+  { id:"prawo-miedzynarodowe", name:"Prawo Międzynarodowe Publiczne", mono:"Mp", accent:"#2a5a6e",
+    desc:"Prawo traktatów, organizacje", ready:false, modes:"w przygotowaniu" }
+];
+const YEARS = [
+  { id:"rok-2", name:"Rok II", desc:"Bieżący rok studiów", subjects:SUBJECTS.map(s=>s.id) }
+];
 
-let deck = [];      // aktualna lista pytań (obiekty)
-let idx = 0;        // indeks w deck
-let answered = false;
-let exactProgress = 0; // liczba zaliczonych słów w trybie 1do1
+/* ============================ IKONY ============================ */
+const ICON = {
+  sun:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M19.1 4.9l-1.8 1.8M6.7 17.3l-1.8 1.8"/></svg>',
+  moon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></svg>',
+  arrow:'<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
+  chevron:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>',
+  logout:'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>'
+};
 
-/* ---------------- pomoc ---------------- */
-const $ = s=>document.querySelector(s);
-function levelText(q){ return q[store.level] || q.sredni || q.skrot || ""; }
-function shuffleArr(a){ for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];} return a; }
-function norm(w){
-  return w.toLowerCase()
-    .replace(/[„""».,;:()\[\]{}!?«…\-–—"'`/]/g,"")
-    .replace(/\s+/g,"").trim();
-}
-// tokeny do trybu 1-do-1: pomijamy samotne znaki interpunkcyjne (norm == "")
-function exTokens(q){ return levelText(q).trim().split(/\s+/).filter(w=>norm(w)!==""); }
+/* ============================ POMOC ============================ */
+const $ = s => document.querySelector(s);
+const el = (h) => { const t=document.createElement("template"); t.innerHTML=h.trim(); return t.content.firstElementChild; };
+function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),2600); }
+function subjById(id){ return SUBJECTS.find(s=>s.id===id); }
 
-/* ---------------- budowa talii ---------------- */
-function buildDeck(){
-  let list = QUESTIONS.slice();
-  if(store.cat!=="all") list = list.filter(q=>q.kat===store.cat);
-  if(store.onlyhard)   list = list.filter(q=>!store.mastered[q.id]);
-  if(store.shuffle)    shuffleArr(list);
-  deck = list; idx=0; answered=false; exactProgress=0;
-}
+/* ============================ MOTYW ============================ */
+function paintTheme(){ $("#themeBtn").innerHTML = Powtorka.getTheme()==="dark"? ICON.sun : ICON.moon; }
+$("#themeBtn").onclick = ()=>{ Powtorka.toggleTheme(); paintTheme(); };
 
-/* ---------------- kategorie ---------------- */
-function fillCats(){
-  const cats = [...new Set(QUESTIONS.map(q=>q.kat))];
-  const sel = $("#catsel");
-  sel.innerHTML = `<option value="all">Wszystko (${QUESTIONS.length})</option>` +
-    cats.map(c=>{const n=QUESTIONS.filter(q=>q.kat===c).length;return `<option value="${c}">${c} (${n})</option>`}).join("");
-  sel.value = store.cat;
-}
-
-/* ---------------- render ---------------- */
-function render(){
-  // meta
-  const total = deck.length;
-  $("#counter").textContent = total? `Pytanie ${idx+1} z ${total}` : "Brak pytań";
-  const masteredCount = Object.values(store.mastered).filter(Boolean).length;
-  $("#score").textContent = `Opanowane: ${masteredCount} / ${QUESTIONS.length}`;
-  $("#barfill").style.width = total? `${(idx)/(total)*100}%` : "0%";
-
-  const stage = $("#stage");
-  if(!total){ stage.innerHTML = `<div class="card"><div class="empty">Brak pytań dla wybranego zakresu.<br>Odznacz „Tylko niezaliczone" lub zmień zakres.</div></div>`; return; }
-  const q = deck[idx];
-
-  let inner = `<div class="card">
-    <span class="chip">${q.kat}</span>
-    <div class="qtext"><span class="qnum">${q.id}.</span> ${q.q}</div>`;
-
-  if(store.mode==="flash")      inner += renderFlash(q);
-  else if(store.mode==="abcd")  inner += renderABCD(q);
-  else                          inner += renderWrite(q);
-
-  inner += `</div>`;
-  stage.innerHTML = inner;
-  wireCard(q);
+/* ============================ RING ============================ */
+function ringHTML(pct){
+  const r=18, c=2*Math.PI*r, off=c*(1-pct/100);
+  return `<div class="ring" title="${pct}% opanowane">
+    <svg width="42" height="42" viewBox="0 0 42 42">
+      <circle class="track" cx="21" cy="21" r="${r}" fill="none" stroke-width="3.4"/>
+      <circle class="meter" cx="21" cy="21" r="${r}" fill="none" stroke-width="3.4"
+        stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}"/>
+    </svg><span class="pct">${pct}%</span></div>`;
 }
 
-/* ----- FISZKI ----- */
-function renderFlash(q){
-  const shown = answered;
-  let h = `<div id="flashbody">`;
-  if(shown){
-    h += `<div class="answer"><span class="albl">Odpowiedź — ${levelName()}</span>${escapeHTML(levelText(q))}</div>`;
-  }
-  h += `</div>`;
-  h += `<div class="btnrow">
-    <button class="btn ghost" id="prev">← Wstecz</button>
-    ${ shown
-        ? `<div class="self-grade" style="margin:0">
-             <button class="btn again" id="again">Powtórzę</button>
-             <button class="btn good" id="know">Umiem ✓</button>
-           </div>`
-        : `<button class="btn primary" id="reveal">Pokaż odpowiedź</button>` }
-    <button class="btn" id="next">Dalej →</button>
-  </div>`;
-  return h;
-}
-
-/* ----- ABCD (dopasuj pojęcie do opisu) ----- */
-let abcdOptions=[], abcdCorrect=-1;
-function buildABCD(q){
-  // poprawna = skrót danego pytania; dystraktory = skróty innych pytań
-  const others = QUESTIONS.filter(o=>o.id!==q.id);
-  shuffleArr(others);
-  const distract = others.slice(0,3);
-  abcdOptions = shuffleArr([{t:q.skrot,ok:true}, ...distract.map(o=>({t:o.skrot,ok:false}))]);
-  abcdCorrect = abcdOptions.findIndex(o=>o.ok);
-}
-function renderABCD(q){
-  if(!answered) buildABCD(q);
-  const letters=["A","B","C","D"];
-  let h = `<div style="margin-top:6px;color:var(--muted);font-size:14px">Wybierz opis pasujący do pojęcia:</div><div class="opts" id="opts">`;
-  abcdOptions.forEach((o,i)=>{
-    h+=`<div class="opt" data-i="${i}"><div class="let">${letters[i]}</div><div>${escapeHTML(o.t)}</div></div>`;
+/* ============================ KAFELKI ============================ */
+function renderYears(){
+  const grid=$("#yearGrid"); grid.innerHTML="";
+  YEARS.forEach((y,i)=>{
+    const ready = y.subjects.filter(id=>subjById(id) && subjById(id).ready).length;
+    const tile = el(`<a class="tile" href="#${y.id}" style="--tile-accent:#2e5e4e;animation-delay:${i*60}ms">
+      <div class="tile-top"><div class="tile-mono">${romanize(i+2)}</div></div>
+      <h3>${y.name}</h3>
+      <div class="tile-sub">${y.desc}</div>
+      <div class="tile-foot">
+        <span>${y.subjects.length} przedmiotów · ${ready} z panelem</span>
+        <span class="go">Otwórz ${ICON.arrow}</span>
+      </div>
+    </a>`);
+    tile.onclick = (e)=>{ e.preventDefault(); openYear(y.id); };
+    grid.appendChild(tile);
   });
-  h += `</div>`;
-  h += `<div class="btnrow"><button class="btn ghost" id="prev">← Wstecz</button><div class="gap"></div><button class="btn primary" id="next">Dalej →</button></div>`;
-  return h;
 }
+function romanize(n){ return ({1:"I",2:"II",3:"III",4:"IV",5:"V"})[n] || n; }
 
-/* ----- PISANIE ----- */
-function renderWrite(q){
-  if(store.sub==="exact") return renderExact(q);
-  // compare
-  let h = `<textarea id="ta" placeholder="Napisz odpowiedź własnymi słowami...">${store._draft||""}</textarea>`;
-  if(answered){
-    h += `<div class="answer"><span class="albl">Wzorcowa odpowiedź — ${levelName()}</span>${escapeHTML(levelText(q))}</div>
-      <div class="self-grade"><button class="btn again" id="again">Powtórzę</button><button class="btn good" id="know">Umiałem ✓</button></div>`;
-  }
-  h += `<div class="btnrow">
-      <button class="btn ghost" id="prev">← Wstecz</button>
-      ${answered? "" : `<button class="btn primary" id="check">Sprawdź / pokaż wzór</button>`}
-      <button class="btn" id="next">Dalej →</button>
-    </div>`;
-  return h;
-}
-function renderExact(q){
-  const target = exTokens(q);
-  const done = exactProgress>=target.length;
-  let h = `<div class="write-stat">Tryb <b>1 do 1</b> — wpisuj dalszy ciąg; zaliczają się słowa do pierwszej pomyłki. Postęp: <b>${exactProgress}/${target.length}</b> słów.
-    ${store.level!=="skrot"?'<span style="color:var(--gold-d)"> (wskazówka: poziom „Skrót" jest najlepszy do tego trybu)</span>':''}</div>`;
-  // linia tokenów: zaliczony prefix na zielono, reszta ukryta jako kropki
-  h += `<div class="tokenline">`;
-  target.forEach((t,i)=>{
-    if(i<exactProgress) h+=`<span class="tok ok">${escapeHTML(t)}</span> `;
-    else if(i===exactProgress) h+=`<span class="tok cur">•••</span> `;
-    else h+=`<span class="tok todo">•••</span> `;
-  });
-  h += `</div>`;
-  if(done){
-    h += `<div class="hintgood">✓ Brawo! Cała odpowiedź odtworzona bezbłędnie.</div>`;
-    h += `<div class="btnrow"><button class="btn ghost" id="prev">← Wstecz</button><button class="btn good" id="know">Opanowane ✓</button><button class="btn primary" id="next">Dalej →</button></div>`;
-  } else {
-    h += `<textarea id="ta" placeholder="Wpisz dalszy ciąg odpowiedzi (od podświetlonego słowa)..."></textarea>`;
-    h += `<div id="exacthint"></div>`;
-    h += `<div class="btnrow">
-        <button class="btn ghost" id="prev">← Wstecz</button>
-        <div style="display:flex;gap:8px">
-          <button class="btn" id="resetword">Reset słów</button>
-          <button class="btn primary" id="checkexact">Sprawdź</button>
-        </div>
-        <button class="btn" id="next">Dalej →</button>
-      </div>`;
-  }
-  return h;
-}
-
-/* ---------------- interakcje ---------------- */
-function wireCard(q){
-  const prev=$("#prev"), next=$("#next");
-  if(prev) prev.onclick=()=>{ if(idx>0){idx--;resetCardState();render();} };
-  if(next) next.onclick=()=>{ goNext(); };
-
-  if(store.mode==="flash"){
-    const r=$("#reveal"); if(r) r.onclick=()=>{answered=true;render();};
-    bindGrade(q);
-  }
-  if(store.mode==="abcd"){
-    const opts=document.querySelectorAll(".opt");
-    opts.forEach(el=>{
-      el.onclick=()=>{
-        if(answered) return;
-        answered=true;
-        const i=+el.dataset.i;
-        opts.forEach(o=>o.classList.add("disabled"));
-        if(opts[abcdCorrect]) opts[abcdCorrect].classList.add("correct");
-        if(i!==abcdCorrect) el.classList.add("wrong");
-        if(i===abcdCorrect){ store.mastered[q.id]=true; saveStore(); }
-        // odśwież tylko licznik opanowanych (bez pełnego re-renderu, by nie zgubić podświetleń)
-        const mc=Object.values(store.mastered).filter(Boolean).length;
-        $("#score").textContent=`Opanowane: ${mc} / ${QUESTIONS.length}`;
-      };
-    });
-  }
-  if(store.mode==="write"){
-    if(store.sub==="compare"){
-      const ta=$("#ta");
-      if(ta) ta.oninput=()=>{store._draft=ta.value;};
-      const c=$("#check"); if(c) c.onclick=()=>{answered=true;render();};
-      bindGrade(q);
+function renderSubjects(yearId){
+  const y=YEARS.find(x=>x.id===yearId); if(!y) return;
+  $("#subjectsTitle").textContent = y.name + " — przedmioty";
+  const grid=$("#subjectGrid"); grid.innerHTML="";
+  y.subjects.forEach((id,i)=>{
+    const s=subjById(id); if(!s) return;
+    let foot, mono=s.mono;
+    if(s.ready){
+      const done=Powtorka.masteredCount(s.id);
+      const pct = s.total? Math.round(done/s.total*100) : 0;
+      foot = `<div class="tile-foot">
+                <span>${done} / ${s.total} ${s.unit}</span>
+                <span class="go">Ucz się ${ICON.arrow}</span>
+              </div>`;
+      var tile = el(`<a class="tile" href="${s.url}" style="--tile-accent:${s.accent};animation-delay:${i*55}ms">
+        <div class="tile-top"><div class="tile-mono">${mono}</div>${s.total?ringHTML(pct):""}</div>
+        <h3>${s.name}</h3>
+        <div class="tile-sub">${s.desc} · ${s.modes}</div>
+        ${foot}
+      </a>`);
     } else {
-      const ce=$("#checkexact"); if(ce) ce.onclick=()=>checkExact(q);
-      const ta=$("#ta"); if(ta){ ta.focus(); ta.onkeydown=e=>{ if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();checkExact(q);} }; }
-      const rw=$("#resetword"); if(rw) rw.onclick=()=>{exactProgress=0;render();};
-      bindGrade(q);
+      var tile = el(`<div class="tile locked" style="--tile-accent:${s.accent};animation-delay:${i*55}ms" aria-disabled="true">
+        <div class="tile-top"><div class="tile-mono">${mono}</div><span class="badge soon">wkrótce</span></div>
+        <h3>${s.name}</h3>
+        <div class="tile-sub">${s.desc}</div>
+        <div class="tile-foot"><span>Panel w przygotowaniu</span></div>
+      </div>`);
     }
-  }
-}
-function bindGrade(q){
-  const k=$("#know"), a=$("#again");
-  if(k) k.onclick=()=>{ store.mastered[q.id]=true; saveStore(); goNext(); };
-  if(a) a.onclick=()=>{ store.mastered[q.id]=false; saveStore(); goNext(); };
-}
-function checkExact(q){
-  const target = exTokens(q);
-  const ta=$("#ta"); if(!ta) return;
-  const typed = ta.value.trim().length? ta.value.trim().split(/\s+/) : [];
-  let matched=0;
-  for(let i=0;i<typed.length && (exactProgress+i)<target.length;i++){
-    if(norm(typed[i])===norm(target[exactProgress+i])) matched++;
-    else break;
-  }
-  exactProgress += matched;
-  render();
-  if(exactProgress>=target.length){ store.mastered[q.id]=true; saveStore(); render(); return; }
-  const hint=$("#exacthint");
-  if(hint){
-    if(matched>0) hint.innerHTML=`<div class="hintgood">✓ Zaliczono ${matched} słów. Kontynuuj od podświetlonego.</div>`;
-    else hint.innerHTML=`<div class="hintbad">✗ Pierwsze słowo się nie zgadza — spróbuj ponownie (bez podglądu).</div>`;
-  }
-}
-function resetCardState(){ answered=false; exactProgress=0; store._draft=""; }
-function goNext(){
-  if(idx<deck.length-1){ idx++; resetCardState(); render(); }
-  else { // koniec talii
-    resetCardState();
-    $("#stage").innerHTML=`<div class="card"><div class="empty">🎉 To było ostatnie pytanie w tym zakresie.<br><br>
-      <button class="btn primary" id="restart">Zacznij od nowa</button></div></div>`;
-    $("#restart").onclick=()=>{ buildDeck(); render(); };
-    $("#barfill").style.width="100%";
-  }
+    grid.appendChild(tile);
+  });
 }
 
-/* ---------------- helpers ---------------- */
-function levelName(){ return store.level==="skrot"?"Skrót":store.level==="max"?"Maksymalny":"Średni"; }
-function escapeHTML(s){ return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
-
-/* ---------------- kontrolki ---------------- */
-function activate(barId, attr, val){
-  document.querySelectorAll(`#${barId} .seg`).forEach(s=>s.classList.toggle("active", s.dataset[attr]===val));
+/* ============================ NAWIGACJA ============================ */
+function renderCrumbs(yearId){
+  const c=$("#crumbs");
+  if(!yearId){ c.innerHTML=`<span class="c active">Lata studiów</span>`; return; }
+  const y=YEARS.find(x=>x.id===yearId);
+  c.innerHTML = `<span class="c" id="crHome">Lata studiów</span>
+    <span class="sep">${ICON.chevron}</span>
+    <span class="c active">${y? y.name : ""}</span>`;
+  $("#crHome").onclick=goHome;
 }
-$("#modebar").addEventListener("click",e=>{
-  const s=e.target.closest(".seg"); if(!s) return;
-  store.mode=s.dataset.mode; saveStore(); activate("modebar","mode",store.mode);
-  $("#writesubwrap").style.display = store.mode==="write"?"flex":"none";
-  resetCardState(); render();
-});
-$("#levelbar").addEventListener("click",e=>{
-  const s=e.target.closest(".seg"); if(!s) return;
-  store.level=s.dataset.level; saveStore(); activate("levelbar","level",store.level);
-  resetCardState(); render();
-});
-$("#subbar").addEventListener("click",e=>{
-  const s=e.target.closest(".seg"); if(!s) return;
-  store.sub=s.dataset.sub; saveStore(); activate("subbar","sub",store.sub);
-  resetCardState(); render();
-});
-$("#catsel").addEventListener("change",e=>{ store.cat=e.target.value; saveStore(); buildDeck(); render(); });
-$("#shuffle").addEventListener("change",e=>{ store.shuffle=e.target.checked; saveStore(); buildDeck(); render(); });
-$("#onlyhard").addEventListener("change",e=>{ store.onlyhard=e.target.checked; saveStore(); buildDeck(); render(); });
-$("#resetbtn").addEventListener("click",()=>{
-  if(confirm("Wyczyścić zapisane postępy (opanowane pytania)?")){ store.mastered={}; saveStore(); render(); }
-});
+function openYear(id){
+  location.hash = id;
+  $("#viewYears").hidden=true; $("#viewSubjects").hidden=false;
+  renderSubjects(id); renderCrumbs(id);
+  reflowStagger($("#subjectGrid"));
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+function goHome(){
+  history.replaceState(null,"",location.pathname);
+  $("#viewSubjects").hidden=true; $("#viewYears").hidden=false;
+  renderCrumbs(null);
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+$("#backToYears").onclick=goHome;
+function reflowStagger(node){ node.querySelectorAll(".tile").forEach(t=>{ t.style.animation="none"; void t.offsetWidth; t.style.animation=""; }); }
 
-/* ---------------- init ---------------- */
-function init(){
-  if(typeof QUESTIONS==="undefined" || !QUESTIONS.length){
-    $("#stage").innerHTML=`<div class="card"><div class="empty">Nie znaleziono pliku z pytaniami (questions.js).</div></div>`; return;
+/* ============================ AUTH UI ============================ */
+function renderAuthSlot(){
+  const slot=$("#authSlot"); const u=Powtorka.getUser();
+  if(u){
+    const initials=(u.name||"?").trim().slice(0,2).toUpperCase();
+    slot.innerHTML="";
+    const chip=el(`<button class="userchip"><span class="avatar">${initials}</span><span class="nm">${u.name}</span>${ICON.chevron}</button>`);
+    chip.onclick=(e)=>{ e.stopPropagation(); toggleUserMenu(u); };
+    slot.appendChild(chip);
+  } else {
+    slot.innerHTML="";
+    const b=el(`<button class="btn btn--primary btn--sm">Zaloguj się</button>`);
+    b.onclick=openAuth;
+    slot.appendChild(b);
   }
-  fillCats();
-  activate("modebar","mode",store.mode);
-  activate("levelbar","level",store.level);
-  activate("subbar","sub",store.sub);
-  $("#writesubwrap").style.display = store.mode==="write"?"flex":"none";
-  $("#shuffle").checked=store.shuffle; $("#onlyhard").checked=store.onlyhard;
-  buildDeck(); render();
+  // modechip
+  const mc=$("#modechip"), mt=$("#modechipTxt");
+  if(Powtorka.isCloud()){ mc.classList.add("cloud"); mt.textContent = u? "synchronizacja w chmurze" : "konta w chmurze"; }
+  else { mc.classList.remove("cloud"); mt.textContent="tryb lokalny"; }
 }
-init();
+function toggleUserMenu(u){
+  const m=$("#userMenu");
+  if(m.classList.contains("show")){ m.classList.remove("show"); return; }
+  const where = Powtorka.isCloud()? (u.email||"") : "Profil lokalny (ta przeglądarka)";
+  m.innerHTML=`<div class="mhead"><div style="font-weight:600">${u.name}</div><div class="e">${where}</div></div>
+    <button class="mi" id="miOut">${ICON.logout} Wyloguj się</button>`;
+  m.classList.add("show");
+  $("#miOut").onclick=async()=>{ m.classList.remove("show"); await Powtorka.signOut(); toast("Wylogowano."); refreshUI(); };
+}
+document.addEventListener("click",()=>$("#userMenu").classList.remove("show"));
+
+let authMode="login";
+function openAuth(){ authMode = Powtorka.isCloud()? "login" : "local"; renderAuthBody(); $("#authOverlay").classList.add("show"); }
+function closeAuth(){ $("#authOverlay").classList.remove("show"); }
+$("#authClose").onclick=closeAuth;
+$("#authOverlay").addEventListener("click",e=>{ if(e.target===$("#authOverlay")) closeAuth(); });
+
+function renderAuthBody(){
+  const body=$("#authBody");
+  if(authMode==="local"){
+    body.innerHTML=`
+      <h2 id="authTitle">Wpisz swoje imię</h2>
+      <p class="sub">Tryb lokalny — postępy zapisują się w tej przeglądarce.</p>
+      <div class="field"><label>Imię lub pseudonim</label><input id="aName" type="text" placeholder="np. Szymon" autocomplete="nickname"></div>
+      <button class="btn btn--primary btn--block" id="aGo">Zaczynam naukę</button>
+      <p class="note">Konta w chmurze (sync między urządzeniami) włączysz po skonfigurowaniu Supabase — instrukcja w pliku README.</p>`;
+    $("#aName").focus();
+    $("#aName").addEventListener("keydown",e=>{ if(e.key==="Enter") $("#aGo").click(); });
+    $("#aGo").onclick=()=>{ Powtorka.setLocalProfile($("#aName").value); closeAuth(); toast("Cześć, "+Powtorka.getUser().name+"!"); refreshUI(); };
+    return;
+  }
+  const isLogin = authMode==="login";
+  body.innerHTML=`
+    <h2 id="authTitle">${isLogin?"Zaloguj się":"Załóż konto"}</h2>
+    <p class="sub">${isLogin?"Twoje postępy czekają na każdym urządzeniu.":"Konto pozwoli synchronizować postępy między telefonem a laptopem."}</p>
+    ${isLogin?"":`<div class="field"><label>Imię</label><input id="aName" type="text" placeholder="np. Szymon" autocomplete="name"></div>`}
+    <div class="field"><label>E-mail</label><input id="aEmail" type="email" placeholder="ty@example.com" autocomplete="email"></div>
+    <div class="field"><label>Hasło</label><input id="aPass" type="password" placeholder="min. 6 znaków" autocomplete="${isLogin?"current-password":"new-password"}"></div>
+    <div class="err" id="aErr"></div>
+    <button class="btn btn--primary btn--block" id="aGo" style="margin-top:6px">${isLogin?"Zaloguj się":"Załóż konto"}</button>
+    <div class="switch">${isLogin?"Nie masz konta?":"Masz już konto?"}
+      <button id="aSwitch">${isLogin?"Zarejestruj się":"Zaloguj się"}</button></div>`;
+  $("#aSwitch").onclick=()=>{ authMode=isLogin?"register":"login"; renderAuthBody(); };
+  const go=$("#aGo");
+  const submit=async()=>{
+    const err=$("#aErr"); err.classList.remove("show");
+    const email=$("#aEmail").value.trim(), pass=$("#aPass").value;
+    if(!email||!pass){ err.textContent="Podaj e-mail i hasło."; err.classList.add("show"); return; }
+    go.disabled=true; go.textContent="Chwila…";
+    try{
+      if(isLogin){ await Powtorka.signIn(email,pass); closeAuth(); toast("Zalogowano."); refreshUI(); }
+      else{
+        const name=$("#aName").value.trim();
+        const r=await Powtorka.signUp(email,pass,name);
+        if(r.signedIn){ closeAuth(); toast("Konto utworzone."); refreshUI(); }
+        else{ err.textContent="Konto utworzone. Potwierdź e-mail, potem zaloguj się."; err.classList.add("show"); authMode="login"; setTimeout(renderAuthBody,1800); }
+      }
+    }catch(ex){
+      err.textContent = translateErr(ex && ex.message);
+      err.classList.add("show");
+    }finally{ go.disabled=false; go.textContent=isLogin?"Zaloguj się":"Załóż konto"; }
+  };
+  go.onclick=submit;
+  $("#aPass").addEventListener("keydown",e=>{ if(e.key==="Enter") submit(); });
+}
+function translateErr(m){
+  m=(m||"").toLowerCase();
+  if(m.includes("invalid login")) return "Błędny e-mail lub hasło.";
+  if(m.includes("already registered")||m.includes("already exists")) return "Konto z tym e-mailem już istnieje — zaloguj się.";
+  if(m.includes("password")) return "Hasło jest za krótkie (min. 6 znaków).";
+  if(m.includes("email")) return "Podaj poprawny adres e-mail.";
+  return "Coś poszło nie tak. Spróbuj ponownie.";
+}
+
+/* ============================ START ============================ */
+function refreshUI(){ renderAuthSlot(); renderSubjectsIfOpen(); syncRings(); }
+function renderSubjectsIfOpen(){ if(!$("#viewSubjects").hidden){ const id=location.hash.replace("#","")||"rok-2"; renderSubjects(id); } }
+// scala postępy (gość → konto / chmura) i odświeża pierścienie
+async function syncRings(){
+  await Promise.all(SUBJECTS.filter(s=>s.ready).map(s=>Powtorka.load(s.id).catch(()=>{})));
+  renderSubjectsIfOpen();
+}
+
+function boot(){
+  paintTheme();
+  $("#yearNow").textContent = new Date().getFullYear();
+  renderYears();
+  Powtorka.onChange(()=>{ renderAuthSlot(); renderSubjectsIfOpen(); syncRings(); });
+  // deep-link po hash
+  const h=location.hash.replace("#","");
+  if(h && YEARS.find(y=>y.id===h)) openYear(h); else { renderCrumbs(null); }
+  window.addEventListener("hashchange",()=>{
+    const hh=location.hash.replace("#","");
+    if(hh && YEARS.find(y=>y.id===hh)) openYear(hh); else goHome();
+  });
+}
+Powtorka.init().then(boot);
 </script>
 </body>
 </html>

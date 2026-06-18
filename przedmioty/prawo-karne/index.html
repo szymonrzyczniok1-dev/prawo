@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prawo Karne — Powtórka</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..600&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+  :root{ --tile-accent:#a25140; --accent:#a25140; --accent-soft:#f3e7e3; }
+  [data-theme="dark"]{ --accent:#cf8a78; --accent-soft:#2e211d; }
+  .panel{max-width:860px;margin:0 auto;padding:0 20px 70px}
+  .phead{text-align:center;padding:34px 0 4px}
+  .phead .eyebrow{margin-bottom:12px}
+  .phead h1{font-size:clamp(1.8rem,4.5vw,2.6rem)}
+  .phead .sub{color:var(--ink-soft);font-size:14.5px;margin-top:8px}
+
+  .tabs{display:inline-flex;gap:4px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-pill);padding:4px}
+  .tabswrap{display:flex;justify-content:center;margin:26px 0 6px}
+  .tab{border:none;background:transparent;color:var(--ink-soft);font:inherit;font-weight:600;font-size:14px;
+    padding:9px 20px;border-radius:var(--r-pill);cursor:pointer;transition:.15s var(--ease)}
+  .tab:hover{color:var(--ink)}
+  .tab.active{background:var(--surface);color:var(--accent);box-shadow:var(--shadow-sm)}
+
+  .bar{height:6px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-pill);overflow:hidden;margin:20px 0 8px}
+  .bar>i{display:block;height:100%;width:0;background:var(--accent);transition:width .35s var(--ease)}
+  .meta{display:flex;justify-content:space-between;font-size:13px;color:var(--ink-soft);margin-bottom:6px}
+
+  .card{padding:26px 26px 22px}
+  .chip{display:inline-block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;
+    color:var(--accent);background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 22%,transparent);
+    padding:5px 11px;border-radius:var(--r-pill);margin-bottom:16px}
+  .q{font-family:"Fraunces",serif;font-size:1.3rem;font-weight:500;line-height:1.38;margin:0 0 20px;letter-spacing:-.01em}
+  .opts{display:flex;flex-direction:column;gap:10px}
+  .opt{display:flex;gap:12px;align-items:flex-start;text-align:left;width:100%;padding:14px 16px;border:1px solid var(--line);
+    background:var(--surface-2);color:var(--ink);border-radius:11px;cursor:pointer;font:inherit;font-size:15px;line-height:1.5;transition:.12s var(--ease)}
+  .opt:hover:not(:disabled){border-color:var(--line-strong);transform:translateX(2px)}
+  .opt .l{flex:0 0 27px;height:27px;border-radius:50%;border:1px solid var(--line-strong);display:grid;place-items:center;
+    font-size:13px;font-weight:700;color:var(--ink-faint)}
+  .opt.correct{border-color:var(--ok-line);background:var(--ok-bg)}
+  .opt.correct .l{background:var(--ok);color:#fff;border-color:var(--ok)}
+  .opt.wrong{border-color:var(--no-line);background:var(--no-bg)}
+  .opt.wrong .l{background:var(--no);color:#fff;border-color:var(--no)}
+  .opt:disabled{cursor:default}
+  .expl{margin-top:18px;padding:15px 17px;border-left:3px solid var(--accent);background:var(--surface-2);
+    border-radius:0 10px 10px 0;font-size:14.5px;line-height:1.65;display:none}
+  .expl.show{display:block}
+  .expl b{color:var(--accent)}
+  .nav{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:22px}
+  .toggle-sc{font-size:13.5px;color:var(--ink-soft);text-align:center;margin-top:14px}
+  .toggle-sc label{cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+  .toggle-sc input{accent-color:var(--accent);width:16px;height:16px}
+
+  /* kazusy */
+  .kazus .stan{font-size:1.02rem;line-height:1.7;margin:4px 0 16px}
+  .kazus .polecenie{font-weight:600;color:var(--accent);margin:0 0 16px;font-size:1.02rem;line-height:1.5}
+  .kazus textarea{width:100%;min-height:130px;background:var(--paper);border:1px solid var(--line-strong);border-radius:11px;
+    color:var(--ink);font:inherit;font-size:15px;padding:13px;resize:vertical;line-height:1.6}
+  .kazus textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .solution{display:none;margin-top:18px}
+  .solution.show{display:block}
+  .solution h4{font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:var(--accent);margin:18px 0 8px;font-weight:700}
+  .solution .body{background:var(--surface-2);border-left:3px solid var(--ok);border-radius:0 10px 10px 0;padding:15px 17px;font-size:14.5px;line-height:1.7}
+  .solution ul{margin:6px 0 0;padding-left:20px}
+  .solution li{margin-bottom:7px}
+
+  /* wynik */
+  .result{text-align:center;padding:32px 22px}
+  .result .score{font-family:"Fraunces",serif;font-size:3.2rem;color:var(--accent);margin:10px 0;letter-spacing:-.02em}
+  .result .msg{color:var(--ink-soft);margin-bottom:22px}
+  .review{text-align:left;margin-top:24px}
+  .review .item{border:1px solid var(--line);border-radius:11px;padding:13px 15px;margin-bottom:10px;font-size:14px;line-height:1.55}
+  .review .item.ok{border-left:3px solid var(--ok)}
+  .review .item.no{border-left:3px solid var(--no)}
+  .review .item .t{font-size:11px;text-transform:uppercase;color:var(--ink-faint);letter-spacing:.1em;font-weight:700;margin-bottom:5px}
+  .hidden{display:none}
+  .pfoot{text-align:center;color:var(--ink-faint);font-size:12.5px;margin-top:34px;line-height:1.8;padding-top:22px;border-top:1px solid var(--line)}
+  .toollink{color:var(--accent);cursor:pointer;text-decoration:underline;font-weight:600}
+  @media(max-width:560px){ .q{font-size:1.14rem} .panel{padding:0 14px 56px} }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="inner">
+    <a class="brand" href="../../index.html"><span class="mark">P</span><span><b>Powtórki</b><small>Prawo karne</small></span></a>
+    <div class="spacer"></div>
+    <a class="btn btn--ghost btn--sm" href="../../index.html">← Przedmioty</a>
+    <button class="iconbtn" id="themeBtn" title="Przełącz motyw" aria-label="Przełącz motyw"></button>
+    <div id="authSlot"></div>
+  </div>
+</header>
+
+<main class="panel">
+  <div class="phead">
+    <div class="eyebrow">Rok II · Część ogólna</div>
+    <h1>Prawo Karne</h1>
+    <div class="sub">Przygotowanie do egzaminu · dr Michał Grudecki</div>
+  </div>
+
+  <div class="tabswrap">
+    <div class="tabs">
+      <button class="tab active" data-mode="abcd">Test ABCD</button>
+      <button class="tab" data-mode="kazusy">Kazusy</button>
+    </div>
+  </div>
+
+  <!-- TRYB ABCD -->
+  <section id="abcd">
+    <div class="bar"><i id="prog"></i></div>
+    <div class="meta"><span id="counter"></span><span id="scoreLbl"></span></div>
+    <div id="quizArea"></div>
+    <div class="toggle-sc"><label><input type="checkbox" id="shuffle"> losuj kolejność pytań przy starcie</label></div>
+    <div id="resultArea" class="hidden"></div>
+  </section>
+
+  <!-- TRYB KAZUSY -->
+  <section id="kazusy" class="hidden">
+    <div class="meta"><span id="kCounter"></span><span></span></div>
+    <div id="kazusArea"></div>
+    <div class="nav">
+      <button class="btn" id="kPrev">← Poprzedni</button>
+      <button class="btn btn--primary" id="kNext">Następny →</button>
+    </div>
+  </section>
+
+  <div class="pfoot">
+    Materiał na podstawie wykładów, prezentacji i skryptu oraz Kodeksu karnego (Dz.U. 2025 poz. 383).<br>
+    Pytania mają charakter pomocniczy. <span class="toollink" id="resetbtn">Wyczyść postępy nauki</span>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script src="../../assets/config.js"></script>
+<script src="../../assets/store.js"></script>
+<script src="data.js"></script>
+<script>
+// ====== fallback gdyby data.js nie wczytał się ======
+if(!window.PYTANIA){ document.getElementById('quizArea').innerHTML =
+  '<div class="card">Nie udało się wczytać pliku <b>data.js</b>. Upewnij się, że leży w tym samym folderze.</div>'; }
+
+const SUBJECT="prawo-karne";
+const P = window.PYTANIA || [];
+const K = window.KAZUSY || [];
+let store = {};
+let order = P.map((_,i)=>i);
+let idx = 0;
+let answers = new Array(P.length).fill(null);
+const LBL = ['A','B','C','D'];
+
+const quizArea = document.getElementById('quizArea');
+const resultArea = document.getElementById('resultArea');
+const $ = s=>document.querySelector(s);
+
+function persist(){
+  store.answers = answers;
+  store.order = order;
+  store.idx = idx;
+  store.shuffleOn = document.getElementById('shuffle').checked;
+  Powtorka.save(SUBJECT, store);
+}
+
+function startQuiz(){
+  if(document.getElementById('shuffle').checked){
+    order = P.map((_,i)=>i);
+    for(let i=order.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[order[i],order[j]]=[order[j],order[i]];}
+  } else { order = P.map((_,i)=>i); }
+  answers = new Array(P.length).fill(null);
+  idx = 0;
+  resultArea.classList.add('hidden');
+  quizArea.classList.remove('hidden');
+  persist();
+  render();
+}
+
+function render(){
+  const qi = order[idx];
+  const q = P[qi];
+  const answered = answers[qi] !== null;
+  let html = '<div class="card"><span class="chip">'+q.temat+'</span>';
+  html += '<p class="q">'+(idx+1)+'. '+q.pytanie+'</p><div class="opts">';
+  q.odpowiedzi.forEach((o,i)=>{
+    let cls='opt';
+    if(answered){
+      if(i===q.poprawna) cls+=' correct';
+      else if(i===answers[qi]) cls+=' wrong';
+    }
+    html += '<button class="'+cls+'" '+(answered?'disabled':'')+' data-i="'+i+'">'+
+            '<span class="l">'+LBL[i]+'</span><span>'+o+'</span></button>';
+  });
+  html += '</div>';
+  html += '<div class="expl'+(answered?' show':'')+'"><b>Wyjaśnienie.</b> '+q.wyjasnienie+'</div>';
+  html += '<div class="nav">';
+  html += '<button class="btn" id="prev" '+(idx===0?'disabled':'')+'>← Wstecz</button>';
+  const last = idx===order.length-1;
+  html += '<button class="btn btn--primary" id="next">'+(last?'Zakończ i pokaż wynik':'Dalej →')+'</button>';
+  html += '</div></div>';
+  quizArea.innerHTML = html;
+  updateMeta();
+
+  quizArea.querySelectorAll('.opt').forEach(b=>{
+    b.addEventListener('click',()=>{
+      if(answers[qi]!==null) return;
+      answers[qi] = parseInt(b.dataset.i);
+      if(answers[qi]===q.poprawna){ store.mastered = store.mastered||{}; store.mastered[qi]=true; }
+      persist();
+      render();
+    });
+  });
+  document.getElementById('prev').onclick=()=>{ if(idx>0){idx--;persist();render();} };
+  document.getElementById('next').onclick=()=>{
+    if(idx<order.length-1){ idx++; persist(); render(); }
+    else showResult();
+  };
+}
+
+function updateMeta(){
+  document.getElementById('counter').textContent = 'Pytanie '+(idx+1)+' z '+order.length;
+  const done = answers.filter(a=>a!==null).length;
+  const good = score();
+  document.getElementById('scoreLbl').textContent = 'Poprawne: '+good+' / '+done+' odp.';
+  document.getElementById('prog').style.width = ((idx+1)/order.length*100)+'%';
+}
+function score(){
+  let s=0; P.forEach((q,i)=>{ if(answers[i]!==null && answers[i]===q.poprawna) s++; }); return s;
+}
+
+function showResult(){
+  quizArea.classList.add('hidden');
+  resultArea.classList.remove('hidden');
+  persist();
+  const total = order.length;
+  const good = score();
+  const pct = Math.round(good/total*100);
+  let msg;
+  if(pct>=90) msg='Znakomicie — materiał opanowany.';
+  else if(pct>=70) msg='Dobrze, ale warto dopracować słabsze działy.';
+  else if(pct>=50) msg='Przeciętnie — powtórz wyjaśnienia poniżej.';
+  else msg='Trzeba jeszcze popracować. Przejrzyj wyjaśnienia.';
+
+  let html = '<div class="card result"><span class="chip">Wynik</span>'+
+    '<div class="score">'+good+' / '+total+'</div>'+
+    '<div class="msg">'+pct+'% poprawnych odpowiedzi. '+msg+'</div>'+
+    '<button class="btn btn--primary" id="restart">Rozpocznij od nowa</button>';
+
+  html += '<div class="review">';
+  order.forEach(qi=>{
+    const q=P[qi]; const a=answers[qi]; const ok=a===q.poprawna;
+    html += '<div class="item '+(ok?'ok':'no')+'">'+
+      '<div class="t">'+q.temat+'</div>'+
+      '<div>'+q.pytanie+'</div>'+
+      '<div style="margin-top:7px;font-size:13.5px">'+
+      (ok?'<span style="color:var(--ok)">✓ Poprawnie</span>':
+          '<span style="color:var(--no)">✗ Twoja odp.: '+(a===null?'brak':LBL[a]+') '+q.odpowiedzi[a])+'</span>'+
+          ' &nbsp;·&nbsp; <span style="color:var(--ok)">Poprawna: '+LBL[q.poprawna]+') '+q.odpowiedzi[q.poprawna]+'</span>')+
+      '</div></div>';
+  });
+  html += '</div></div>';
+  resultArea.innerHTML = html;
+  document.getElementById('restart').onclick = startQuiz;
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ====== KAZUSY ======
+let ki = 0;
+function renderKazus(){
+  const k = K[ki];
+  document.getElementById('kCounter').textContent = 'Kazus '+(ki+1)+' z '+K.length;
+  let html = '<div class="card kazus"><span class="chip">'+k.temat+'</span>';
+  html += '<p class="stan">'+k.stan+'</p>';
+  html += '<p class="polecenie">▸ '+k.polecenie+'</p>';
+  html += '<textarea placeholder="Spróbuj samodzielnie rozwiązać kazus — zapisz swoją analizę, zanim odsłonisz wzorcowe rozwiązanie..."></textarea>';
+  html += '<div style="margin-top:14px"><button class="btn btn--primary" id="reveal">Pokaż wzorcowe rozwiązanie</button></div>';
+  html += '<div class="solution" id="sol">';
+  html += '<h4>Rozwiązanie wzorcowe</h4><div class="body">'+k.rozwiazanie+'</div>';
+  html += '<h4>Punkty kluczowe (na które patrzy egzaminator)</h4><div class="body"><ul>';
+  k.punkty.forEach(p=>{ html += '<li>'+p+'</li>'; });
+  html += '</ul></div></div>';
+  html += '</div>';
+  document.getElementById('kazusArea').innerHTML = html;
+  document.getElementById('reveal').onclick = ()=> document.getElementById('sol').classList.add('show');
+  document.getElementById('kPrev').disabled = ki===0;
+  document.getElementById('kNext').disabled = ki===K.length-1;
+}
+document.getElementById('kPrev').onclick=()=>{ if(ki>0){ki--;renderKazus();} };
+document.getElementById('kNext').onclick=()=>{ if(ki<K.length-1){ki++;renderKazus();} };
+
+// ====== zakładki ======
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    const m=t.dataset.mode;
+    document.getElementById('abcd').classList.toggle('hidden', m!=='abcd');
+    document.getElementById('kazusy').classList.toggle('hidden', m!=='kazusy');
+    if(m==='kazusy') renderKazus();
+  });
+});
+
+// ====== reset postępów ======
+document.getElementById('resetbtn').addEventListener('click', async ()=>{
+  if(confirm("Wyczyścić zapisane postępy (odpowiedzi i opanowane pytania)?")){
+    await Powtorka.resetSubject(SUBJECT);
+    store = {}; answers = new Array(P.length).fill(null);
+    order = P.map((_,i)=>i); idx = 0;
+    document.getElementById('shuffle').checked = false;
+    startQuiz();
+  }
+});
+
+// ====== topbar: motyw + użytkownik ======
+const ICON={ sun:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M19.1 4.9l-1.8 1.8M6.7 17.3l-1.8 1.8"/></svg>',
+  moon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></svg>' };
+function paintTheme(){ document.getElementById('themeBtn').innerHTML = Powtorka.getTheme()==="dark"? ICON.sun : ICON.moon; }
+document.getElementById('themeBtn').onclick=()=>{ Powtorka.toggleTheme(); paintTheme(); };
+function renderAuthSlot(){
+  const slot=document.getElementById('authSlot'), u=Powtorka.getUser();
+  if(u){ const ini=(u.name||"?").trim().slice(0,2).toUpperCase();
+    slot.innerHTML='<span class="userchip" style="cursor:default"><span class="avatar">'+ini+'</span><span class="nm">'+u.name+'</span></span>'; }
+  else { slot.innerHTML='<a class="btn btn--primary btn--sm" href="../../index.html">Zaloguj się</a>'; }
+}
+
+// ====== start ======
+async function boot(){
+  paintTheme();
+  await Powtorka.init();
+  store = await Powtorka.load(SUBJECT);
+  renderAuthSlot();
+  Powtorka.onChange(renderAuthSlot);
+  // przywróć zapisaną sesję quizu
+  if(Array.isArray(store.answers) && store.answers.length===P.length){
+    answers = store.answers;
+    order = (Array.isArray(store.order) && store.order.length===P.length) ? store.order : P.map((_,i)=>i);
+    idx = (typeof store.idx==='number' && store.idx>=0 && store.idx<order.length) ? store.idx : 0;
+    document.getElementById('shuffle').checked = !!store.shuffleOn;
+  }
+  if(P.length){ render(); }
+}
+boot();
+</script>
+</body>
+</html>
