@@ -127,6 +127,20 @@
       <label class="chk"><input type="checkbox" id="shuffle"> Losuj kolejność</label>
       <label class="chk"><input type="checkbox" id="onlyhard"> Tylko niezaliczone</label>
     </div>
+    <div class="ctl-row">
+      <span class="ctl-lab">Pokaż</span>
+      <div class="segbar" id="flagbar">
+        <button class="seg sm active" data-flag="all">Wszystkie</button>
+        <button class="seg sm" data-flag="hard">⚠ Trudne</button>
+        <button class="seg sm" data-flag="fav">☆ Ulubione</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="ctl-row" style="justify-content:center;margin:18px 0 0">
+    <button class="btn btn--primary btn--sm" id="btnExam">▶ Rozpocznij egzamin</button>
+    <button class="btn btn--sm" id="btnStats">Statystyki</button>
+    <button class="btn btn--sm" id="btnNote">＋ Wrzuć notatkę</button>
   </div>
 
   <div class="meta">
@@ -147,6 +161,7 @@
 
 <script src="../../assets/config.js"></script>
 <script src="../../assets/store.js"></script>
+<script src="../../assets/features.js"></script>
 <script src="questions.js"></script>
 <script>
 /* ---------------- stan (postępy przez Powtorka — konta/sync) ---------------- */
@@ -176,6 +191,8 @@ function buildDeck(){
   let list = DATA.slice();
   if(store.cat!=="all") list = list.filter(q=>q.kat===store.cat);
   if(store.onlyhard)   list = list.filter(q=>!store.mastered[q.id]);
+  if(store.flagFilter==="hard") list = list.filter(q=>store.flags[q.id]&&store.flags[q.id].hard);
+  else if(store.flagFilter==="fav") list = list.filter(q=>store.flags[q.id]&&store.flags[q.id].fav);
   if(store.shuffle)    shuffleArr(list);
   deck = list; idx=0; answered=false; exactProgress=0;
 }
@@ -200,9 +217,16 @@ function render(){
   const stage = $("#stage");
   if(!total){ stage.innerHTML = `<div class="card"><div class="empty">Brak pytań dla wybranego zakresu.<br>Odznacz „Tylko niezaliczone" lub zmień zakres.</div></div>`; return; }
   const q = deck[idx];
+  const fl = store.flags[q.id]||{};
 
   let inner = `<div class="card">
-    <span class="chip">${q.kat}</span>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+      <span class="chip">${q.kat}</span>
+      <span class="flagbtns">
+        <button class="flagbtn hard ${fl.hard?'on':''}" id="flagHard">⚠ Trudne</button>
+        <button class="flagbtn fav ${fl.fav?'on':''}" id="flagFav">☆ Ulubione</button>
+      </span>
+    </div>
     <div class="qtext"><span class="qnum">${q.id}.</span> ${q.q}</div>`;
 
   if(store.mode==="flash")      inner += renderFlash(q);
@@ -303,12 +327,15 @@ function renderExact(q){
 
 /* ---------------- interakcje ---------------- */
 function wireCard(q){
+  const fh=$("#flagHard"), ff=$("#flagFav");
+  if(fh) fh.onclick=()=>toggleFlag(q.id,"hard");
+  if(ff) ff.onclick=()=>toggleFlag(q.id,"fav");
   const prev=$("#prev"), next=$("#next");
   if(prev) prev.onclick=()=>{ if(idx>0){idx--;resetCardState();render();} };
   if(next) next.onclick=()=>{ goNext(); };
 
   if(store.mode==="flash"){
-    const r=$("#reveal"); if(r) r.onclick=()=>{answered=true;render();};
+    const r=$("#reveal"); if(r) r.onclick=()=>{answered=true;markStudied();render();};
     bindGrade(q);
   }
   if(store.mode==="abcd"){
@@ -316,7 +343,7 @@ function wireCard(q){
     opts.forEach(elm=>{
       elm.onclick=()=>{
         if(answered) return;
-        answered=true;
+        answered=true; markStudied();
         const i=+elm.dataset.i;
         opts.forEach(o=>o.classList.add("disabled"));
         if(opts[abcdCorrect]) opts[abcdCorrect].classList.add("correct");
@@ -331,7 +358,7 @@ function wireCard(q){
     if(store.sub==="compare"){
       const ta=$("#ta");
       if(ta) ta.oninput=()=>{store._draft=ta.value;};
-      const c=$("#check"); if(c) c.onclick=()=>{answered=true;render();};
+      const c=$("#check"); if(c) c.onclick=()=>{answered=true;markStudied();render();};
       bindGrade(q);
     } else {
       const ce=$("#checkexact"); if(ce) ce.onclick=()=>checkExact(q);
@@ -343,12 +370,13 @@ function wireCard(q){
 }
 function bindGrade(q){
   const k=$("#know"), a=$("#again");
-  if(k) k.onclick=()=>{ store.mastered[q.id]=true; saveStore(); goNext(); };
-  if(a) a.onclick=()=>{ store.mastered[q.id]=false; saveStore(); goNext(); };
+  if(k) k.onclick=()=>{ store.mastered[q.id]=true; saveStore(); markStudied(); goNext(); };
+  if(a) a.onclick=()=>{ store.mastered[q.id]=false; saveStore(); markStudied(); goNext(); };
 }
 function checkExact(q){
   const target = exTokens(q);
   const ta=$("#ta"); if(!ta) return;
+  markStudied();
   const typed = ta.value.trim().length? ta.value.trim().split(/\s+/) : [];
   let matched=0;
   for(let i=0;i<typed.length && (exactProgress+i)<target.length;i++){
@@ -407,6 +435,69 @@ $("#resetbtn").addEventListener("click",()=>{
   if(confirm("Wyczyścić zapisane postępy (opanowane pytania)?")){ store.mastered={}; saveStore(); render(); }
 });
 
+/* ---------------- flagi, egzamin, statystyki, notatki, passa ---------------- */
+$("#flagbar").addEventListener("click",e=>{
+  const s=e.target.closest(".seg"); if(!s) return;
+  store.flagFilter=s.dataset.flag; saveStore(); activate("flagbar","flag",store.flagFilter);
+  buildDeck(); render();
+});
+$("#btnExam").addEventListener("click", openExam);
+$("#btnStats").addEventListener("click", openStats);
+$("#btnNote").addEventListener("click", ()=>PUI.notesOpen({subject:SUBJECT, subjectName:"Prawo Administracyjne"}));
+
+let _studied=false;
+function markStudied(){ if(_studied) return; _studied=true; Powtorka.touchStreak().then(renderAuthSlot); }
+function toggleFlag(id, kind){
+  store.flags[id]=store.flags[id]||{};
+  store.flags[id][kind]=!store.flags[id][kind];
+  saveStore();
+  const btn = kind==="hard"?$("#flagHard"):$("#flagFav");
+  if(btn) btn.classList.toggle("on", !!store.flags[id][kind]);
+}
+function buildExamItems(){
+  let pool = DATA.slice();
+  if(store.cat!=="all") pool = pool.filter(q=>q.kat===store.cat);
+  return pool.map(q=>{
+    const others = shuffleArr(DATA.filter(o=>o.id!==q.id)).slice(0,3);
+    const opts = shuffleArr([{t:q.skrot,ok:true}, ...others.map(o=>({t:o.skrot,ok:false}))]);
+    return { prompt:q.q, options:opts.map(o=>o.t), correct:opts.findIndex(o=>o.ok), topic:q.kat, explanation:q.sredni };
+  });
+}
+function openExam(){
+  PUI.examOpen({ items:buildExamItems(), subject:SUBJECT, onFinish:(r)=>{
+    store.exams=store.exams||[]; store.exams.unshift({date:r.date,score:r.score,total:r.total,pct:r.pct,timeSec:r.timeSec});
+    store.exams=store.exams.slice(0,20); saveStore(); markStudied();
+  }});
+}
+function openStats(){
+  const total=DATA.length;
+  const mastered=Object.values(store.mastered).filter(Boolean).length;
+  const hard=Object.values(store.flags).filter(f=>f&&f.hard).length;
+  const fav=Object.values(store.flags).filter(f=>f&&f.fav).length;
+  const cats=[...new Set(DATA.map(q=>q.kat))];
+  const catRows=cats.map(c=>{
+    const inCat=DATA.filter(q=>q.kat===c);
+    const m=inCat.filter(q=>store.mastered[q.id]).length;
+    const pct=inCat.length?Math.round(m/inCat.length*100):0;
+    return `<div class="st-row"><span class="lab">${PUI.esc(c)}</span><span class="st-track"><i style="width:${pct}%"></i></span><span class="num">${m}/${inCat.length}</span></div>`;
+  }).join("");
+  const exams=(store.exams||[]).slice(0,6).map(e=>{
+    const d=new Date(e.date).toLocaleDateString("pl-PL",{day:"2-digit",month:"2-digit"});
+    return `<div class="st-row"><span class="lab">${d}</span><span class="st-track"><i style="width:${e.pct}%"></i></span><span class="num">${e.score}/${e.total}</span></div>`;
+  }).join("");
+  const streak=Powtorka.getStreak();
+  const html=`
+    <div class="st-grid">
+      <div class="st-card"><div class="v">${total?Math.round(mastered/total*100):0}%</div><div class="k">opanowane (${mastered}/${total})</div></div>
+      <div class="st-card"><div class="v">${streak}</div><div class="k">passa dni 🔥</div></div>
+      <div class="st-card"><div class="v">${hard}</div><div class="k">trudne ⚠</div></div>
+      <div class="st-card"><div class="v">${fav}</div><div class="k">ulubione ☆</div></div>
+    </div>
+    <div class="st-h">Opanowanie wg działu</div>${catRows}
+    <div class="st-h">Ostatnie egzaminy</div>${exams||'<div class="psub">Brak egzaminów — kliknij „Rozpocznij egzamin".</div>'}`;
+  PUI.modal({ title:"Statystyki", sub:"Prawo Administracyjne", wide:true, html });
+}
+
 /* ---------------- topbar: motyw + użytkownik ---------------- */
 const ICON={ sun:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M19.1 4.9l-1.8 1.8M6.7 17.3l-1.8 1.8"/></svg>',
   moon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></svg>' };
@@ -414,9 +505,10 @@ function paintTheme(){ $("#themeBtn").innerHTML = Powtorka.getTheme()==="dark"? 
 $("#themeBtn").onclick=()=>{ Powtorka.toggleTheme(); paintTheme(); };
 function renderAuthSlot(){
   const slot=$("#authSlot"), u=Powtorka.getUser();
+  const chip = PUI.streakChip(Powtorka.getStreak());
   if(u){ const ini=(u.name||"?").trim().slice(0,2).toUpperCase();
-    slot.innerHTML=`<span class="userchip" style="cursor:default"><span class="avatar">${ini}</span><span class="nm">${u.name}</span></span>`; }
-  else { slot.innerHTML=`<a class="btn btn--primary btn--sm" href="../../index.html">Zaloguj się</a>`; }
+    slot.innerHTML=`<span style="display:inline-flex;align-items:center;gap:10px">${chip}<span class="userchip" style="cursor:default"><span class="avatar">${ini}</span><span class="nm">${u.name}</span></span></span>`; }
+  else { slot.innerHTML=`<span style="display:inline-flex;align-items:center;gap:10px">${chip}<a class="btn btn--primary btn--sm" href="../../index.html">Zaloguj się</a></span>`; }
 }
 
 /* ---------------- init ---------------- */
@@ -428,6 +520,9 @@ function applyDefaults(){
   store.shuffle= store.shuffle|| false;
   store.onlyhard=store.onlyhard|| false;
   store.mastered = store.mastered || {};
+  store.flags = store.flags || {};
+  store.flagFilter = store.flagFilter || "all";
+  store.exams = store.exams || [];
 }
 function init(){
   if(typeof DATA==="undefined" || !DATA.length){
@@ -437,6 +532,7 @@ function init(){
   activate("modebar","mode",store.mode);
   activate("levelbar","level",store.level);
   activate("subbar","sub",store.sub);
+  activate("flagbar","flag",store.flagFilter);
   $("#writesubwrap").style.display = store.mode==="write"?"flex":"none";
   $("#shuffle").checked=store.shuffle; $("#onlyhard").checked=store.onlyhard;
   buildDeck(); render();

@@ -80,6 +80,7 @@
 
 <script src="assets/config.js"></script>
 <script src="assets/store.js"></script>
+<script src="assets/features.js"></script>
 <script>
 /* ============================ DANE ============================ */
 const SUBJECTS = [
@@ -212,14 +213,16 @@ function reflowStagger(node){ node.querySelectorAll(".tile").forEach(t=>{ t.styl
 /* ============================ AUTH UI ============================ */
 function renderAuthSlot(){
   const slot=$("#authSlot"); const u=Powtorka.getUser();
+  slot.innerHTML="";
+  slot.style.display="inline-flex"; slot.style.alignItems="center"; slot.style.gap="10px";
+  const sc=(window.PUI&&PUI.streakChip)?PUI.streakChip(Powtorka.getStreak()):"";
+  if(sc) slot.appendChild(el(sc));
   if(u){
     const initials=(u.name||"?").trim().slice(0,2).toUpperCase();
-    slot.innerHTML="";
     const chip=el(`<button class="userchip"><span class="avatar">${initials}</span><span class="nm">${u.name}</span>${ICON.chevron}</button>`);
     chip.onclick=(e)=>{ e.stopPropagation(); toggleUserMenu(u); };
     slot.appendChild(chip);
   } else {
-    slot.innerHTML="";
     const b=el(`<button class="btn btn--primary btn--sm">Zaloguj się</button>`);
     b.onclick=openAuth;
     slot.appendChild(b);

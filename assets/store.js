@@ -156,10 +156,12 @@
     if (!isCloud || !sb || !user) return null;
     try {
       const { data, error } = await sb.from("profiles")
-        .select("role,approved,first_name,last_name").eq("id", user.id).maybeSingle();
+        .select("role,approved,first_name,last_name,streak_count,streak_last").eq("id", user.id).maybeSingle();
       if (error || !data) return null;
       user.role = data.role || "user";
       user.approved = !!data.approved;
+      if (data.streak_count != null) user.streak_count = data.streak_count;
+      if (data.streak_last) user.streak_last = data.streak_last;
       if (data.first_name) user.first_name = data.first_name;
       if (data.last_name) user.last_name = data.last_name;
       const full = [data.first_name, data.last_name].filter(Boolean).join(" ").trim();
@@ -229,6 +231,53 @@
     } catch (e) { return null; }
   }
 
+  /* ---------------- passa dni nauki (streak) ---------------- */
+  function dayStr(offset) {
+    const d = new Date(); if (offset) d.setDate(d.getDate() + offset);
+    return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  }
+  function getStreak() {
+    if (user && user.streak_count != null) return user.streak_count;
+    const s = LS.get("powtorka.streak." + userKey(), null);
+    return s ? s.count : 0;
+  }
+  async function touchStreak() {
+    let count = 0, last = null;
+    const local = LS.get("powtorka.streak." + userKey(), null);
+    if (local) { count = local.count; last = local.last; }
+    if (user && user.streak_count != null) { count = user.streak_count; last = user.streak_last; }
+    const today = dayStr(0);
+    if (last === today) return count;                 // już dziś policzone
+    count = (last === dayStr(-1)) ? count + 1 : 1;     // wczoraj → +1, inaczej → reset
+    last = today;
+    LS.set("powtorka.streak." + userKey(), { count, last });
+    if (user) { user.streak_count = count; user.streak_last = last; }
+    if (isCloud && user && sb) {
+      try { await sb.from("profiles").update({ streak_count: count, streak_last: last }).eq("id", user.id); } catch (e) {}
+    }
+    emit();
+    return count;
+  }
+
+  /* ---------------- wysyłka notatki (tekst + plik) ---------------- */
+  async function submitNote(opts) {
+    opts = opts || {};
+    if (!isCloud || !sb || !user) throw new Error("Zaloguj się, aby wysłać notatkę.");
+    let file_path = null;
+    if (opts.file) {
+      const safe = (opts.file.name || "plik").replace(/[^\w.\-]+/g, "_");
+      file_path = user.id + "/" + Date.now() + "_" + safe;
+      const up = await sb.storage.from("notatki").upload(file_path, opts.file, { upsert: false });
+      if (up.error) throw up.error;
+    }
+    const { error } = await sb.from("submissions").insert({
+      user_id: user.id, subject: opts.subject || null,
+      title: opts.title || null, content: opts.content || null, file_path
+    });
+    if (error) throw error;
+    return true;
+  }
+
   /* ---------------- API procentów (na kafelki) ---------------- */
   // czytamy z lokalnego cache bez sieci — szybki podgląd na stronie głównej
   function masteredCount(sub) {
@@ -247,6 +296,7 @@
     isAdmin: () => !!(user && user.role === "admin"),
     isApproved: () => !!(user && user.approved),
     getClient: () => sb,
+    getStreak, touchStreak, submitNote,
     load, save, resetSubject, masteredCount, loadQuestions,
     getTheme, setTheme, toggleTheme
   };

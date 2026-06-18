@@ -107,6 +107,12 @@
     </div>
   </div>
 
+  <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:6px">
+    <button class="btn btn--primary btn--sm" id="btnExam">▶ Rozpocznij egzamin</button>
+    <button class="btn btn--sm" id="btnStats">Statystyki</button>
+    <button class="btn btn--sm" id="btnNote">＋ Wrzuć notatkę</button>
+  </div>
+
   <!-- TRYB ABCD -->
   <section id="abcd">
     <div class="bar"><i id="prog"></i></div>
@@ -136,6 +142,7 @@
 
 <script src="../../assets/config.js"></script>
 <script src="../../assets/store.js"></script>
+<script src="../../assets/features.js"></script>
 <script src="data.js"></script>
 <script>
 // ====== fallback gdyby data.js nie wczytał się ======
@@ -180,8 +187,12 @@ function render(){
   const qi = order[idx];
   const q = P[qi];
   const answered = answers[qi] !== null;
-  let html = '<div class="card"><span class="chip">'+q.temat+'</span>';
-  html += '<p class="q">'+(idx+1)+'. '+q.pytanie+'</p><div class="opts">';
+  const fl = (store.flags && store.flags[qi]) || {};
+  let html = '<div class="card"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">'
+    + '<span class="chip" style="margin-bottom:0">'+q.temat+'</span>'
+    + '<span class="flagbtns"><button class="flagbtn hard '+(fl.hard?'on':'')+'" id="flagHard">⚠ Trudne</button>'
+    + '<button class="flagbtn fav '+(fl.fav?'on':'')+'" id="flagFav">☆ Ulubione</button></span></div>';
+  html += '<p class="q" style="margin-top:16px">'+(idx+1)+'. '+q.pytanie+'</p><div class="opts">';
   q.odpowiedzi.forEach((o,i)=>{
     let cls='opt';
     if(answered){
@@ -201,11 +212,15 @@ function render(){
   quizArea.innerHTML = html;
   updateMeta();
 
+  const fh=document.getElementById('flagHard'), ff=document.getElementById('flagFav');
+  if(fh) fh.onclick=()=>toggleFlag(qi,'hard');
+  if(ff) ff.onclick=()=>toggleFlag(qi,'fav');
   quizArea.querySelectorAll('.opt').forEach(b=>{
     b.addEventListener('click',()=>{
       if(answers[qi]!==null) return;
       answers[qi] = parseInt(b.dataset.i);
       if(answers[qi]===q.poprawna){ store.mastered = store.mastered||{}; store.mastered[qi]=true; }
+      markStudied();
       persist();
       render();
     });
@@ -311,6 +326,51 @@ document.getElementById('resetbtn').addEventListener('click', async ()=>{
   }
 });
 
+// ====== egzamin / statystyki / flagi / passa / notatki ======
+document.getElementById('btnExam').addEventListener('click', openExam);
+document.getElementById('btnStats').addEventListener('click', openStats);
+document.getElementById('btnNote').addEventListener('click', ()=>PUI.notesOpen({subject:SUBJECT, subjectName:'Prawo Karne'}));
+
+let _studied=false;
+function markStudied(){ if(_studied) return; _studied=true; Powtorka.touchStreak().then(renderAuthSlot); }
+function toggleFlag(qi, kind){
+  store.flags=store.flags||{};
+  store.flags[qi]=store.flags[qi]||{};
+  store.flags[qi][kind]=!store.flags[qi][kind];
+  persist();
+  const btn = kind==='hard'?document.getElementById('flagHard'):document.getElementById('flagFav');
+  if(btn) btn.classList.toggle('on', !!store.flags[qi][kind]);
+}
+function buildExamItems(){
+  return P.map(q=>({ prompt:q.pytanie, options:q.odpowiedzi.slice(), correct:q.poprawna, topic:q.temat, explanation:q.wyjasnienie }));
+}
+function openExam(){
+  PUI.examOpen({ items:buildExamItems(), subject:SUBJECT, onFinish:(r)=>{
+    store.exams=store.exams||[]; store.exams.unshift({date:r.date,score:r.score,total:r.total,pct:r.pct,timeSec:r.timeSec});
+    store.exams=store.exams.slice(0,20); persist(); markStudied();
+  }});
+}
+function openStats(){
+  const total=P.length;
+  const mastered=Object.values(store.mastered||{}).filter(Boolean).length;
+  const hard=Object.values(store.flags||{}).filter(f=>f&&f.hard).length;
+  const fav=Object.values(store.flags||{}).filter(f=>f&&f.fav).length;
+  const examsHtml=(store.exams||[]).slice(0,6).map(e=>{
+    const d=new Date(e.date).toLocaleDateString("pl-PL",{day:"2-digit",month:"2-digit"});
+    return '<div class="st-row"><span class="lab">'+d+'</span><span class="st-track"><i style="width:'+e.pct+'%"></i></span><span class="num">'+e.score+'/'+e.total+'</span></div>';
+  }).join("");
+  const streak=Powtorka.getStreak();
+  const html=
+    '<div class="st-grid">'
+    +'<div class="st-card"><div class="v">'+(total?Math.round(mastered/total*100):0)+'%</div><div class="k">opanowane ('+mastered+'/'+total+')</div></div>'
+    +'<div class="st-card"><div class="v">'+streak+'</div><div class="k">passa dni 🔥</div></div>'
+    +'<div class="st-card"><div class="v">'+hard+'</div><div class="k">trudne ⚠</div></div>'
+    +'<div class="st-card"><div class="v">'+fav+'</div><div class="k">ulubione ☆</div></div>'
+    +'</div>'
+    +'<div class="st-h">Ostatnie egzaminy</div>'+(examsHtml||'<div class="psub">Brak egzaminów — kliknij „Rozpocznij egzamin".</div>');
+  PUI.modal({ title:"Statystyki", sub:"Prawo Karne", wide:true, html });
+}
+
 // ====== topbar: motyw + użytkownik ======
 const ICON={ sun:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M19.1 4.9l-1.8 1.8M6.7 17.3l-1.8 1.8"/></svg>',
   moon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></svg>' };
@@ -318,9 +378,10 @@ function paintTheme(){ document.getElementById('themeBtn').innerHTML = Powtorka.
 document.getElementById('themeBtn').onclick=()=>{ Powtorka.toggleTheme(); paintTheme(); };
 function renderAuthSlot(){
   const slot=document.getElementById('authSlot'), u=Powtorka.getUser();
+  const chip = PUI.streakChip(Powtorka.getStreak());
   if(u){ const ini=(u.name||"?").trim().slice(0,2).toUpperCase();
-    slot.innerHTML='<span class="userchip" style="cursor:default"><span class="avatar">'+ini+'</span><span class="nm">'+u.name+'</span></span>'; }
-  else { slot.innerHTML='<a class="btn btn--primary btn--sm" href="../../index.html">Zaloguj się</a>'; }
+    slot.innerHTML='<span style="display:inline-flex;align-items:center;gap:10px">'+chip+'<span class="userchip" style="cursor:default"><span class="avatar">'+ini+'</span><span class="nm">'+u.name+'</span></span></span>'; }
+  else { slot.innerHTML='<span style="display:inline-flex;align-items:center;gap:10px">'+chip+'<a class="btn btn--primary btn--sm" href="../../index.html">Zaloguj się</a></span>'; }
 }
 
 // ====== start ======
@@ -339,6 +400,8 @@ async function boot(){
   order = P.map((_,i)=>i);
   answers = new Array(P.length).fill(null);
   store = await Powtorka.load(SUBJECT);
+  store.flags = store.flags || {};
+  store.exams = store.exams || [];
   renderAuthSlot();
   Powtorka.onChange(renderAuthSlot);
   // przywróć zapisaną sesję quizu
