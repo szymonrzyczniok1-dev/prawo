@@ -91,7 +91,14 @@
   function setUserFromSession(session) {
     if (session && session.user) {
       const u = session.user;
-      user = { id: u.id, email: u.email, name: (u.user_metadata && u.user_metadata.name) || u.email };
+      const m = u.user_metadata || {};
+      const full = m.name || [m.first_name, m.last_name].filter(Boolean).join(" ").trim() || u.email;
+      const prevRole = user && user.role, prevApproved = user && user.approved;
+      user = {
+        id: u.id, email: u.email, name: full,
+        first_name: m.first_name || "", last_name: m.last_name || "",
+        role: prevRole || "user", approved: prevApproved || false
+      };
     } else {
       user = null;
     }
@@ -107,7 +114,8 @@
         isCloud = true;
         const { data } = await sb.auth.getSession();
         setUserFromSession(data ? data.session : null);
-        sb.auth.onAuthStateChange((_e, session) => { setUserFromSession(session); emit(); });
+        if (user) { await getProfile(); }
+        sb.auth.onAuthStateChange((_e, session) => { setUserFromSession(session); emit(); if (user) getProfile(); });
       } catch (e) {
         isCloud = false; // graceful fallback do trybu lokalnego
       }
@@ -121,15 +129,44 @@
   }
 
   /* ---------------- API auth ---------------- */
-  async function signUp(email, password, name) {
+  async function signUp(email, password, firstName, lastName) {
     if (!isCloud) throw new Error("Tryb lokalny — rejestracja niedostępna.");
+    const full = [firstName, lastName].filter(Boolean).join(" ").trim();
     const { data, error } = await sb.auth.signUp({
-      email, password, options: { data: { name: name || email } }
+      email, password,
+      options: { data: { first_name: firstName || "", last_name: lastName || "", name: full || email } }
     });
     if (error) throw error;
     // gdy potwierdzanie e-mail wyłączone → od razu jest sesja
     if (data.session) { setUserFromSession(data.session); emit(); return { signedIn: true }; }
     return { signedIn: false, needsConfirm: true };
+  }
+  // realizacja kodu dostępu → zatwierdza konto
+  async function redeemCode(code) {
+    if (!isCloud || !sb || !code) return false;
+    try {
+      const { data, error } = await sb.rpc("redeem_access_code", { p_code: code });
+      if (error) return false;
+      if (data && user) user.approved = true;
+      return !!data;
+    } catch (e) { return false; }
+  }
+  // dociągnięcie profilu (rola, status zatwierdzenia, imię/nazwisko)
+  async function getProfile() {
+    if (!isCloud || !sb || !user) return null;
+    try {
+      const { data, error } = await sb.from("profiles")
+        .select("role,approved,first_name,last_name").eq("id", user.id).maybeSingle();
+      if (error || !data) return null;
+      user.role = data.role || "user";
+      user.approved = !!data.approved;
+      if (data.first_name) user.first_name = data.first_name;
+      if (data.last_name) user.last_name = data.last_name;
+      const full = [data.first_name, data.last_name].filter(Boolean).join(" ").trim();
+      if (full && (!user.name || user.name === user.email)) user.name = full;
+      emit();
+      return data;
+    } catch (e) { return null; }
   }
   async function signIn(email, password) {
     if (!isCloud) throw new Error("Tryb lokalny.");
@@ -206,7 +243,9 @@
     isCloud: () => isCloud,
     hasCloudConfig: () => HAS_CLOUD_CFG,
     getUser: () => user,
-    signUp, signIn, signOut, setLocalProfile,
+    signUp, signIn, signOut, setLocalProfile, redeemCode, getProfile,
+    isAdmin: () => !!(user && user.role === "admin"),
+    isApproved: () => !!(user && user.approved),
     load, save, resetSubject, masteredCount, loadQuestions,
     getTheme, setTheme, toggleTheme
   };

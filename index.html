@@ -263,9 +263,13 @@ function renderAuthBody(){
   body.innerHTML=`
     <h2 id="authTitle">${isLogin?"Zaloguj się":"Załóż konto"}</h2>
     <p class="sub">${isLogin?"Twoje postępy czekają na każdym urządzeniu.":"Konto pozwoli synchronizować postępy między telefonem a laptopem."}</p>
-    ${isLogin?"":`<div class="field"><label>Imię</label><input id="aName" type="text" placeholder="np. Szymon" autocomplete="name"></div>`}
+    ${isLogin?"":`<div style="display:flex;gap:10px">
+      <div class="field" style="flex:1"><label>Imię</label><input id="aFirst" type="text" placeholder="Szymon" autocomplete="given-name"></div>
+      <div class="field" style="flex:1"><label>Nazwisko</label><input id="aLast" type="text" placeholder="Rzyczniok" autocomplete="family-name"></div>
+    </div>`}
     <div class="field"><label>E-mail</label><input id="aEmail" type="email" placeholder="ty@example.com" autocomplete="email"></div>
     <div class="field"><label>Hasło</label><input id="aPass" type="password" placeholder="min. 6 znaków" autocomplete="${isLogin?"current-password":"new-password"}"></div>
+    ${isLogin?"":`<div class="field"><label>Kod dostępu</label><input id="aCode" type="text" placeholder="kod od organizatora roku" autocomplete="off"></div>`}
     <div class="err" id="aErr"></div>
     <button class="btn btn--primary btn--block" id="aGo" style="margin-top:6px">${isLogin?"Zaloguj się":"Załóż konto"}</button>
     <div class="switch">${isLogin?"Nie masz konta?":"Masz już konto?"}
@@ -276,14 +280,24 @@ function renderAuthBody(){
     const err=$("#aErr"); err.classList.remove("show");
     const email=$("#aEmail").value.trim(), pass=$("#aPass").value;
     if(!email||!pass){ err.textContent="Podaj e-mail i hasło."; err.classList.add("show"); return; }
+    let first="",last="",code="";
+    if(!isLogin){
+      first=$("#aFirst").value.trim(); last=$("#aLast").value.trim(); code=$("#aCode").value.trim();
+      if(!first||!last){ err.textContent="Podaj imię i nazwisko."; err.classList.add("show"); return; }
+    }
     go.disabled=true; go.textContent="Chwila…";
     try{
       if(isLogin){ await Powtorka.signIn(email,pass); closeAuth(); toast("Zalogowano."); refreshUI(); }
       else{
-        const name=$("#aName").value.trim();
-        const r=await Powtorka.signUp(email,pass,name);
-        if(r.signedIn){ closeAuth(); toast("Konto utworzone."); refreshUI(); }
-        else{ err.textContent="Konto utworzone. Potwierdź e-mail, potem zaloguj się."; err.classList.add("show"); authMode="login"; setTimeout(renderAuthBody,1800); }
+        const r=await Powtorka.signUp(email,pass,first,last);
+        if(r.signedIn){
+          let approved=false;
+          if(code) approved=await Powtorka.redeemCode(code);
+          await Powtorka.getProfile();
+          closeAuth();
+          toast(approved ? "Konto utworzone — masz dostęp." : (code ? "Konto utworzone. Kod nieprawidłowy." : "Konto utworzone."));
+          refreshUI();
+        } else { err.textContent="Konto utworzone. Potwierdź e-mail, potem zaloguj się."; err.classList.add("show"); authMode="login"; setTimeout(renderAuthBody,1800); }
       }
     }catch(ex){
       err.textContent = translateErr(ex && ex.message);
