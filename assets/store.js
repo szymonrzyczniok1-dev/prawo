@@ -246,6 +246,7 @@
     signUp, signIn, signOut, setLocalProfile, redeemCode, getProfile,
     isAdmin: () => !!(user && user.role === "admin"),
     isApproved: () => !!(user && user.approved),
+    getClient: () => sb,
     load, save, resetSubject, masteredCount, loadQuestions,
     getTheme, setTheme, toggleTheme
   };

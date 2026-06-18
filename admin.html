@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel admina — Powtórki</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..600&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  .admin{max-width:1080px;margin:0 auto;padding:0 22px 70px}
+  .ahead{padding:34px 0 6px}
+  .ahead h1{font-size:clamp(1.7rem,4vw,2.4rem)}
+  .ahead .sub{color:var(--ink-soft);font-size:14.5px;margin-top:6px}
+  .tabs{display:inline-flex;gap:4px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-pill);padding:4px;margin:22px 0 18px;flex-wrap:wrap}
+  .tab{border:none;background:transparent;color:var(--ink-soft);font:inherit;font-weight:600;font-size:13.5px;padding:8px 16px;border-radius:var(--r-pill);cursor:pointer;transition:.15s var(--ease)}
+  .tab:hover{color:var(--ink)} .tab.active{background:var(--surface);color:var(--accent);box-shadow:var(--shadow-sm)}
+  .panel-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);box-shadow:var(--shadow-sm);padding:20px}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th{text-align:left;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;padding:8px 12px;border-bottom:1px solid var(--line)}
+  td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+  tr:last-child td{border-bottom:none}
+  .tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.04em;padding:3px 9px;border-radius:var(--r-pill);border:1px solid var(--line-strong);color:var(--ink-soft)}
+  .tag.ok{color:var(--ok);background:var(--ok-bg);border-color:var(--ok-line)}
+  .tag.no{color:var(--no);background:var(--no-bg);border-color:var(--no-line)}
+  .tag.adm{color:var(--accent);background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 25%,transparent)}
+  .row-form{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:18px}
+  .row-form .f{display:flex;flex-direction:column;gap:5px}
+  .row-form label{font-size:11.5px;font-weight:600;color:var(--ink-soft)}
+  .row-form input{font:inherit;font-size:14px;padding:9px 11px;border-radius:9px;border:1px solid var(--line-strong);background:var(--paper);color:var(--ink)}
+  .row-form input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  select.mini{font:inherit;font-size:13px;padding:6px 9px;border-radius:8px;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);cursor:pointer}
+  .empty{color:var(--ink-soft);text-align:center;padding:30px;line-height:1.7}
+  .gate{max-width:460px;margin:80px auto;text-align:center}
+  .gate h2{font-size:1.6rem;margin-bottom:8px}
+  .gate p{color:var(--ink-soft);margin-bottom:20px}
+  .note-content{max-width:340px;color:var(--ink-soft);font-size:13px;white-space:pre-wrap;line-height:1.5}
+  .scroll{overflow-x:auto}
+  @media(max-width:560px){ .admin{padding:0 14px 56px} th,td{padding:9px 8px} }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="inner">
+    <a class="brand" href="index.html"><span class="mark">P</span><span><b>Powtórki</b><small>Panel admina</small></span></a>
+    <div class="spacer"></div>
+    <a class="btn btn--ghost btn--sm" href="index.html">← Strona główna</a>
+    <button class="iconbtn" id="themeBtn" title="Przełącz motyw" aria-label="Przełącz motyw"></button>
+    <div id="authSlot"></div>
+  </div>
+</header>
+
+<main class="admin">
+  <div id="content"><div class="empty">Wczytywanie…</div></div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script src="assets/config.js"></script>
+<script src="assets/store.js"></script>
+<script>
+const $ = s=>document.querySelector(s);
+const ICON={ sun:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M19.1 4.9l-1.8 1.8M6.7 17.3l-1.8 1.8"/></svg>',
+  moon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></svg>' };
+function toast(m){ const t=$("#toast"); t.textContent=m; t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),2400); }
+function esc(s){ return (s==null?"":String(s)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function fmtDate(s){ try{ return new Date(s).toLocaleDateString("pl-PL",{day:"2-digit",month:"2-digit",year:"numeric"}); }catch(e){ return ""; } }
+
+function paintTheme(){ $("#themeBtn").innerHTML = Powtorka.getTheme()==="dark"? ICON.sun : ICON.moon; }
+$("#themeBtn").onclick=()=>{ Powtorka.toggleTheme(); paintTheme(); };
+function renderAuthSlot(){
+  const slot=$("#authSlot"), u=Powtorka.getUser();
+  if(u){ const ini=(u.name||"?").trim().slice(0,2).toUpperCase();
+    slot.innerHTML='<span class="userchip" style="cursor:default"><span class="avatar">'+ini+'</span><span class="nm">'+esc(u.name)+'</span></span>'; }
+  else slot.innerHTML='<a class="btn btn--primary btn--sm" href="index.html">Zaloguj się</a>';
+}
+
+let TAB="kody";
+function shell(){
+  return `<div class="ahead"><div class="eyebrow">Administracja</div><h1>Panel admina</h1>
+    <div class="sub">Zarządzaj dostępem, kontami i zgłoszeniami notatek.</div></div>
+    <div class="tabs">
+      <button class="tab" data-t="kody">Kody dostępu</button>
+      <button class="tab" data-t="konta">Konta</button>
+      <button class="tab" data-t="notatki">Notatki do weryfikacji</button>
+    </div>
+    <div id="tabbody"></div>`;
+}
+function setTab(t){ TAB=t; document.querySelectorAll(".tab").forEach(b=>b.classList.toggle("active",b.dataset.t===t));
+  if(t==="kody") renderCodes(); else if(t==="konta") renderAccounts(); else renderNotes(); }
+
+/* ---------------- KODY ---------------- */
+async function renderCodes(){
+  const body=$("#tabbody");
+  body.innerHTML=`<div class="panel-card">
+    <div class="row-form">
+      <div class="f"><label>Kod</label><input id="cCode" placeholder="np. PRAWO2026" style="text-transform:uppercase"></div>
+      <div class="f"><label>Etykieta (opis)</label><input id="cLabel" placeholder="np. Rok II — znajomi"></div>
+      <div class="f"><label>Limit użyć (puste = bez limitu)</label><input id="cMax" type="number" min="1" placeholder="∞" style="width:170px"></div>
+      <button class="btn btn--primary" id="cAdd">Dodaj kod</button>
+    </div>
+    <div class="scroll"><table><thead><tr><th>Kod</th><th>Etykieta</th><th>Użycia</th><th>Status</th><th></th></tr></thead>
+      <tbody id="codesBody"><tr><td colspan="5" class="empty">Wczytywanie…</td></tr></tbody></table></div>
+  </div>`;
+  $("#cAdd").onclick=addCode;
+  const sb=Powtorka.getClient();
+  const { data, error } = await sb.from("access_codes").select("*").order("created_at",{ascending:false});
+  const tb=$("#codesBody");
+  if(error){ tb.innerHTML=`<tr><td colspan="5" class="empty">Błąd: ${esc(error.message)}</td></tr>`; return; }
+  if(!data.length){ tb.innerHTML=`<tr><td colspan="5" class="empty">Brak kodów. Dodaj pierwszy powyżej.</td></tr>`; return; }
+  tb.innerHTML = data.map(c=>`<tr>
+    <td><b>${esc(c.code)}</b></td>
+    <td>${esc(c.label||"—")}</td>
+    <td>${c.uses}${c.max_uses!=null?" / "+c.max_uses:" / ∞"}</td>
+    <td>${c.active?'<span class="tag ok">aktywny</span>':'<span class="tag no">wyłączony</span>'}</td>
+    <td style="text-align:right"><button class="btn btn--sm" data-toggle="${esc(c.code)}" data-active="${c.active}">${c.active?"Wyłącz":"Włącz"}</button></td>
+  </tr>`).join("");
+  tb.querySelectorAll("[data-toggle]").forEach(b=>b.onclick=()=>toggleCode(b.dataset.toggle, b.dataset.active!=="true"));
+}
+async function addCode(){
+  const code=$("#cCode").value.trim().toUpperCase(), label=$("#cLabel").value.trim();
+  const maxv=$("#cMax").value.trim();
+  if(!code){ toast("Podaj kod."); return; }
+  const row={ code, label: label||null, max_uses: maxv? parseInt(maxv):null };
+  const sb=Powtorka.getClient();
+  const { error } = await sb.from("access_codes").insert(row);
+  if(error){ toast("Błąd: "+error.message); return; }
+  toast("Kod dodany."); renderCodes();
+}
+async function toggleCode(code, active){
+  const sb=Powtorka.getClient();
+  const { error } = await sb.from("access_codes").update({active}).eq("code",code);
+  if(error){ toast("Błąd: "+error.message); return; }
+  toast(active?"Kod włączony.":"Kod wyłączony."); renderCodes();
+}
+
+/* ---------------- KONTA ---------------- */
+async function renderAccounts(){
+  const body=$("#tabbody");
+  body.innerHTML=`<div class="panel-card"><div class="scroll"><table>
+    <thead><tr><th>Osoba</th><th>E-mail</th><th>Rola</th><th>Dostęp</th><th>Rejestracja</th><th></th></tr></thead>
+    <tbody id="accBody"><tr><td colspan="6" class="empty">Wczytywanie…</td></tr></tbody></table></div></div>`;
+  const sb=Powtorka.getClient();
+  const { data, error } = await sb.from("profiles").select("id,email,first_name,last_name,role,approved,created_at").order("created_at",{ascending:false});
+  const tb=$("#accBody");
+  if(error){ tb.innerHTML=`<tr><td colspan="6" class="empty">Błąd: ${esc(error.message)}</td></tr>`; return; }
+  if(!data.length){ tb.innerHTML=`<tr><td colspan="6" class="empty">Brak kont.</td></tr>`; return; }
+  const me=Powtorka.getUser().id;
+  tb.innerHTML = data.map(p=>{
+    const name=[p.first_name,p.last_name].filter(Boolean).join(" ")||"—";
+    const isMe=p.id===me;
+    return `<tr>
+      <td><b>${esc(name)}</b>${isMe?' <span class="tag">to Ty</span>':''}</td>
+      <td>${esc(p.email||"—")}</td>
+      <td>${p.role==="admin"?'<span class="tag adm">admin</span>':'<span class="tag">użytkownik</span>'}</td>
+      <td>${p.approved?'<span class="tag ok">zatwierdzony</span>':'<span class="tag no">oczekuje</span>'}</td>
+      <td>${fmtDate(p.created_at)}</td>
+      <td style="text-align:right;white-space:nowrap">
+        <button class="btn btn--sm" data-appr="${p.id}" data-val="${!p.approved}">${p.approved?"Cofnij":"Zatwierdź"}</button>
+        ${isMe?"":`<button class="btn btn--sm" data-role="${p.id}" data-val="${p.role==='admin'?'user':'admin'}">${p.role==='admin'?'Odbierz admina':'Nadaj admina'}</button>`}
+      </td></tr>`;
+  }).join("");
+  tb.querySelectorAll("[data-appr]").forEach(b=>b.onclick=()=>setApproved(b.dataset.appr, b.dataset.val==="true"));
+  tb.querySelectorAll("[data-role]").forEach(b=>b.onclick=()=>setRole(b.dataset.role, b.dataset.val));
+}
+async function setApproved(id, approved){
+  const sb=Powtorka.getClient();
+  const { error } = await sb.from("profiles").update({approved}).eq("id",id);
+  if(error){ toast("Błąd: "+error.message); return; }
+  toast(approved?"Konto zatwierdzone.":"Cofnięto dostęp."); renderAccounts();
+}
+async function setRole(id, role){
+  const sb=Powtorka.getClient();
+  const { error } = await sb.from("profiles").update({role}).eq("id",id);
+  if(error){ toast("Błąd: "+error.message); return; }
+  toast("Rola zmieniona."); renderAccounts();
+}
+
+/* ---------------- NOTATKI ---------------- */
+async function renderNotes(){
+  const body=$("#tabbody");
+  body.innerHTML=`<div class="panel-card"><div class="scroll"><table>
+    <thead><tr><th>Data</th><th>Przedmiot</th><th>Tytuł</th><th>Treść</th><th>Plik</th><th>Status</th></tr></thead>
+    <tbody id="notesBody"><tr><td colspan="6" class="empty">Wczytywanie…</td></tr></tbody></table></div></div>`;
+  const sb=Powtorka.getClient();
+  const { data, error } = await sb.from("submissions").select("*").order("created_at",{ascending:false});
+  const tb=$("#notesBody");
+  if(error){ tb.innerHTML=`<tr><td colspan="6" class="empty">Błąd: ${esc(error.message)}</td></tr>`; return; }
+  if(!data.length){ tb.innerHTML=`<tr><td colspan="6" class="empty">Brak zgłoszeń. Pojawią się tu, gdy użytkownicy zaczną wrzucać notatki.</td></tr>`; return; }
+  tb.innerHTML = data.map(n=>`<tr>
+    <td style="white-space:nowrap">${fmtDate(n.created_at)}</td>
+    <td>${esc(n.subject||"—")}</td>
+    <td><b>${esc(n.title||"—")}</b></td>
+    <td><div class="note-content">${esc(n.content||"")}</div></td>
+    <td>${n.file_path?`<button class="btn btn--sm" data-file="${esc(n.file_path)}">Pobierz</button>`:"—"}</td>
+    <td><select class="mini" data-status="${n.id}">
+      ${["nowa","zweryfikowana","odrzucona"].map(s=>`<option value="${s}" ${n.status===s?"selected":""}>${s}</option>`).join("")}
+    </select></td>
+  </tr>`).join("");
+  tb.querySelectorAll("[data-status]").forEach(sel=>sel.onchange=()=>setStatus(sel.dataset.status, sel.value));
+  tb.querySelectorAll("[data-file]").forEach(b=>b.onclick=()=>downloadFile(b.dataset.file));
+}
+async function setStatus(id, status){
+  const sb=Powtorka.getClient();
+  const { error } = await sb.from("submissions").update({status}).eq("id",id);
+  if(error){ toast("Błąd: "+error.message); return; }
+  toast("Status zmieniony.");
+}
+async function downloadFile(path){
+  const sb=Powtorka.getClient();
+  const { data, error } = await sb.storage.from("notatki").createSignedUrl(path, 120);
+  if(error){ toast("Błąd: "+error.message); return; }
+  window.open(data.signedUrl, "_blank");
+}
+
+/* ---------------- boot ---------------- */
+function gate(title, msg, cta){
+  $("#content").innerHTML=`<div class="gate"><h2>${title}</h2><p>${msg}</p>${cta||""}</div>`;
+}
+async function boot(){
+  paintTheme();
+  await Powtorka.init();
+  renderAuthSlot();
+  if(!Powtorka.isCloud()){ gate("Panel niedostępny","Panel admina działa tylko z kontami w chmurze (Supabase)."); return; }
+  if(!Powtorka.getUser()){ gate("Zaloguj się","Aby wejść do panelu admina, zaloguj się na konto administratora.",'<a class="btn btn--primary" href="index.html">Strona główna</a>'); return; }
+  if(!Powtorka.isAdmin()){ gate("Brak dostępu","To konto nie ma uprawnień administratora.",'<a class="btn btn--primary" href="index.html">Wróć do nauki</a>'); return; }
+  $("#content").innerHTML=shell();
+  document.querySelectorAll(".tab").forEach(b=>b.onclick=()=>setTab(b.dataset.t));
+  setTab("kody");
+  Powtorka.onChange(renderAuthSlot);
+}
+boot();
+</script>
+</body>
+</html>

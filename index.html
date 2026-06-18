@@ -106,7 +106,8 @@ const ICON = {
   moon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></svg>',
   arrow:'<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
   chevron:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>',
-  logout:'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>'
+  logout:'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>',
+  admin:'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.4-3 7.4-7 9-4-1.6-7-4.6-7-9V6l7-3z"/></svg>'
 };
 
 /* ============================ POMOC ============================ */
@@ -232,8 +233,10 @@ function toggleUserMenu(u){
   const m=$("#userMenu");
   if(m.classList.contains("show")){ m.classList.remove("show"); return; }
   const where = Powtorka.isCloud()? (u.email||"") : "Profil lokalny (ta przeglądarka)";
+  const adminLink = Powtorka.isAdmin()
+    ? `<a class="mi" href="admin.html">${ICON.admin} Panel admina</a><div class="sep"></div>` : "";
   m.innerHTML=`<div class="mhead"><div style="font-weight:600">${u.name}</div><div class="e">${where}</div></div>
-    <button class="mi" id="miOut">${ICON.logout} Wyloguj się</button>`;
+    ${adminLink}<button class="mi" id="miOut">${ICON.logout} Wyloguj się</button>`;
   m.classList.add("show");
   $("#miOut").onclick=async()=>{ m.classList.remove("show"); await Powtorka.signOut(); toast("Wylogowano."); refreshUI(); };
 }
