@@ -268,5 +268,31 @@
     go.onclick=submit; inp.addEventListener("keydown",e=>{ if(e.key==="Enter") submit(); }); inp.focus();
   }
 
-  window.PUI = { modal, streakChip, examOpen, notesOpen, accessGate, toast, esc, shuffle };
+  /* ---------------- bezpieczne formatowanie treści ---------------- */
+  // Obsługuje: **pogrubienie**, listy (linie zaczynające się od - * • – —),
+  // akapity (pusta linia) i pojedyncze złamania linii. Resztę escapuje (XSS-safe).
+  function formatText(raw) {
+    raw = raw == null ? "" : String(raw);
+    const inline = (s) => esc(s).replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+    const isBullet = (l) => /^\s*[-*•–—]\s+/.test(l);
+    const lines = raw.split(/\r?\n/);
+    let html = "", listOpen = false, para = [];
+    const flushPara = () => { if (para.length) { html += "<p>" + para.join("<br>") + "</p>"; para = []; } };
+    const closeList = () => { if (listOpen) { html += "</ul>"; listOpen = false; } };
+    lines.forEach((line) => {
+      if (isBullet(line)) {
+        flushPara();
+        if (!listOpen) { html += "<ul>"; listOpen = true; }
+        html += "<li>" + inline(line.replace(/^\s*[-*•–—]\s+/, "")) + "</li>";
+      } else if (line.trim() === "") {
+        flushPara(); closeList();
+      } else {
+        closeList(); para.push(inline(line));
+      }
+    });
+    flushPara(); closeList();
+    return html || "<p></p>";
+  }
+
+  window.PUI = { modal, streakChip, examOpen, notesOpen, accessGate, toast, esc, shuffle, formatText };
 })();

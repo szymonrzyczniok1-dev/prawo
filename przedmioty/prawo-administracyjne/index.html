@@ -86,6 +86,20 @@
   .edit-actions{display:flex;gap:8px;align-items:center;margin-top:14px;flex-wrap:wrap}
   .edit-hint{font-weight:400;color:var(--ink-faint);text-transform:none;letter-spacing:0}
   .edit-note{font-size:12px;color:var(--ink-faint);margin-top:12px;line-height:1.5}
+  /* formatowanie treści (fiszka, wzór, podgląd) */
+  .fmt p{margin:0 0 10px} .fmt p:last-child{margin-bottom:0} .fmt p:first-child{margin-top:0}
+  .fmt ul{list-style:none;margin:8px 0 10px;padding:0}
+  .fmt li{position:relative;padding-left:20px;margin-bottom:7px;line-height:1.6}
+  .fmt li::before{content:"•";position:absolute;left:4px;top:-1px;color:var(--accent);font-weight:700;font-size:1.05em}
+  .fmt strong{font-weight:700;color:var(--ink)}
+  /* pasek narzędzi + podgląd na żywo */
+  .fmt-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .fmtbtn{border:1px solid var(--line-strong);background:var(--surface);color:var(--ink-soft);font:inherit;font-size:12.5px;font-weight:600;padding:6px 12px;border-radius:9px;cursor:pointer;transition:.13s var(--ease)}
+  .fmtbtn:hover{color:var(--ink);border-color:var(--ink-faint)}
+  .fmt-hint{font-size:11.5px;color:var(--ink-faint)}
+  .fmt-hint code{background:var(--surface-2);border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:11px}
+  .fmt-prev-label{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;margin:14px 0 6px}
+  .fmt-preview{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:14px 16px;font-size:15px;line-height:1.7;max-height:220px;overflow-y:auto;color:var(--ink)}
 
   textarea{width:100%;min-height:130px;resize:vertical;background:var(--paper);border:1px solid var(--line-strong);
     color:var(--ink);border-radius:12px;padding:14px 15px;font:inherit;font-size:15px;outline:none;line-height:1.6;margin-top:4px}
@@ -218,6 +232,20 @@ function effectiveText(q, level){
 function levelText(q){ return effectiveText(q, store.level) || q.sredni || q.skrot || ""; }
 function hasUserEdit(q, level){ return !!(store.edits && store.edits[q.id] && store.edits[q.id][level]!=null); }
 function hasGlobalEdit(q, level){ return !!(GLOBAL_OVR[q.id] && GLOBAL_OVR[q.id][level]!=null); }
+// narzędzia formatowania w edytorze (operują na zaznaczeniu w textarea)
+function wrapSel(ta, before, after){
+  const s=ta.selectionStart, e=ta.selectionEnd, v=ta.value, sel=v.slice(s,e);
+  ta.value = v.slice(0,s)+before+sel+after+v.slice(e);
+  ta.focus(); ta.setSelectionRange(s+before.length, s+before.length+sel.length);
+}
+function bulletSel(ta){
+  const s=ta.selectionStart, e=ta.selectionEnd, v=ta.value;
+  let ls=v.lastIndexOf("\n",s-1)+1, le=v.indexOf("\n",e); if(le===-1) le=v.length;
+  const block=v.slice(ls,le).split("\n")
+    .map(l=> l.trim()==="" ? l : (/^\s*[-*•–—]\s+/.test(l)? l : "- "+l)).join("\n");
+  ta.value=v.slice(0,ls)+block+v.slice(le);
+  ta.focus(); ta.setSelectionRange(ls, ls+block.length);
+}
 function shuffleArr(a){ for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];} return a; }
 function norm(w){
   return w.toLowerCase()
@@ -302,7 +330,7 @@ function renderFlash(q){
         </div>
         <div class="flip-face flip-back">
           <div class="flip-corner">Odpowiedź · ${levelName()} ${badge}</div>
-          <div class="flip-scroll"><div class="flip-a">${escapeHTML(levelText(q))}</div></div>
+          <div class="flip-scroll"><div class="flip-a fmt">${PUI.formatText(levelText(q))}</div></div>
           <div class="flip-tap">↻ kliknij, aby wrócić do pytania</div>
         </div>
       </div>
@@ -319,7 +347,14 @@ function renderFlashEdit(q){
   return `
     <div class="flash-editbox">
       <div class="flip-corner">Edytujesz odpowiedź <span class="edit-hint">· poziom „${levelName()}"</span></div>
+      <div class="fmt-toolbar">
+        <button type="button" class="fmtbtn" data-fmt="bold"><b>B</b> Pogrub</button>
+        <button type="button" class="fmtbtn" data-fmt="bullet">• Lista</button>
+        <span class="fmt-hint">Zaznacz tekst i kliknij. Możesz też pisać <code>**pogrubienie**</code>, a „- " na początku linii daje punkt.</span>
+      </div>
       <textarea id="editTa" class="flash-edit-ta">${escapeHTML(effectiveText(q, store.level))}</textarea>
+      <div class="fmt-prev-label">Podgląd na żywo</div>
+      <div class="fmt-preview fmt" id="editPreview"></div>
       <div class="edit-actions">
         <button class="btn btn--ghost" id="editCancel">Anuluj</button>
         <div class="gap"></div>
@@ -327,7 +362,7 @@ function renderFlashEdit(q){
           ? `<button class="btn" id="editSaveMine">Zapisz u mnie</button><button class="btn btn--primary" id="editSaveAll">Zapisz dla wszystkich</button>`
           : `<button class="btn btn--primary" id="editSaveMine">Zapisz</button>`}
       </div>
-      <div class="edit-note">Edytujesz treść dla poziomu „${levelName()}". Oryginał („fabryczny") zostaje zachowany — zawsze możesz go przywrócić.</div>
+      <div class="edit-note">Oryginał („fabryczny") zostaje zachowany — zawsze możesz go przywrócić.</div>
     </div>`;
 }
 function updateFlashMid(q){
@@ -366,7 +401,7 @@ function renderWrite(q){
   if(store.sub==="exact") return renderExact(q);
   let h = `<textarea id="ta" placeholder="Napisz odpowiedź własnymi słowami...">${store._draft||""}</textarea>`;
   if(answered){
-    h += `<div class="answer"><span class="albl">Wzorcowa odpowiedź — ${levelName()}</span>${escapeHTML(levelText(q))}</div>
+    h += `<div class="answer"><span class="albl">Wzorcowa odpowiedź — ${levelName()}</span><div class="fmt">${PUI.formatText(levelText(q))}</div></div>
       <div class="self-grade" style="margin-top:16px;justify-content:center"><button class="btn btn--no" id="again">Powtórzę</button><button class="btn btn--ok" id="know">Umiałem ✓</button></div>`;
   }
   h += `<div class="btnrow">
@@ -418,6 +453,14 @@ function wireCard(q){
   if(store.mode==="flash"){
     if(flashEdit){
       const ta=$("#editTa");
+      const prev=$("#editPreview");
+      const updPrev=()=>{ if(prev) prev.innerHTML=PUI.formatText(ta.value); };
+      updPrev();
+      ta.addEventListener("input", updPrev);
+      document.querySelectorAll(".fmtbtn").forEach(b=>b.onclick=()=>{
+        if(b.dataset.fmt==="bold") wrapSel(ta,"**","**"); else bulletSel(ta);
+        updPrev();
+      });
       $("#editCancel").onclick=()=>{ flashEdit=false; answered=true; render(); };
       const sm=$("#editSaveMine");
       if(sm) sm.onclick=()=>{
