@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prawo Cywilne — LexFlip</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..600&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+  :root{ --tile-accent:#3c4a7a; --accent:#3c4a7a; --accent-soft:#e7e9f2; }
+  [data-theme="dark"]{ --accent:#8b97cf; --accent-soft:#1f2334; }
+  .panel{max-width:880px;margin:0 auto;padding:0 20px 70px}
+  .phead{text-align:center;padding:34px 0 4px}
+  .phead .eyebrow{margin-bottom:12px}
+  .phead h1{font-size:clamp(1.8rem,4.5vw,2.6rem)}
+  .phead .sub{color:var(--ink-soft);font-size:14.5px;margin-top:8px}
+  .controls{display:flex;flex-direction:column;gap:13px;align-items:center;margin:26px 0 6px}
+  .ctl-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center}
+  .ctl-lab{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint);font-weight:700}
+  .segbar{display:inline-flex;gap:4px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-pill);padding:4px}
+  .seg{border:none;background:transparent;color:var(--ink-soft);font:inherit;font-weight:600;font-size:13px;padding:7px 14px;border-radius:var(--r-pill);cursor:pointer;transition:.15s var(--ease);white-space:nowrap}
+  .seg:hover{color:var(--ink)} .seg.active{background:var(--surface);color:var(--accent);box-shadow:var(--shadow-sm)}
+  select{font:inherit;font-size:13.5px;padding:8px 12px;border-radius:10px;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);cursor:pointer;outline:none;max-width:260px}
+  select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .chk{display:inline-flex;align-items:center;gap:8px;color:var(--ink-soft);font-size:13px;cursor:pointer;user-select:none}
+  .chk input{accent-color:var(--accent);width:16px;height:16px}
+  .meta{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--ink-soft);margin:22px 2px 8px}
+  .bar{height:6px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r-pill);overflow:hidden}
+  .bar>i{display:block;height:100%;width:0;background:var(--accent);transition:width .35s var(--ease)}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-card);box-shadow:var(--shadow-sm);padding:26px 26px 22px;margin-top:16px;animation:rise .35s var(--ease)}
+  .chip{display:inline-block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--accent);background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 22%,transparent);padding:5px 11px;border-radius:var(--r-pill)}
+  .flagbtns{display:inline-flex;gap:6px}
+  .flagbtn{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink-faint);font:inherit;font-size:12px;font-weight:600;padding:5px 10px;border-radius:999px;cursor:pointer;transition:.13s}
+  .flagbtn:hover{color:var(--ink);border-color:var(--ink-faint)}
+  .flagbtn.on.hard{color:var(--no);border-color:var(--no-line);background:var(--no-bg)}
+  .flagbtn.on.fav{color:#c2702a;border-color:#ecd7bf;background:#f6ece0}
+  [data-theme="dark"] .flagbtn.on.fav{background:#2b2014;border-color:#473420;color:#e2a35f}
+  /* fiszka 3D */
+  .flip{perspective:1600px;height:clamp(320px,60vh,520px);margin-top:18px;cursor:pointer;user-select:none}
+  .flip-inner{position:relative;width:100%;height:100%;transition:transform .6s cubic-bezier(.2,.7,.2,1);transform-style:preserve-3d}
+  .flip.is-flipped .flip-inner{transform:rotateY(180deg)}
+  .flip-face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:16px;background:var(--surface);box-shadow:var(--shadow-md);padding:22px 10px 16px 24px}
+  .flip-front{background:linear-gradient(180deg,var(--surface),var(--surface-2))}
+  .flip-back{transform:rotateY(180deg);border-left:3px solid var(--accent)}
+  .flip-corner{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;margin-bottom:12px;padding-right:14px;flex:0 0 auto}
+  .flip-back .flip-corner{color:var(--accent)}
+  .flip-scroll{flex:1;overflow-y:auto;padding-right:14px;overscroll-behavior:contain}
+  .flip-scroll::-webkit-scrollbar{width:8px} .flip-scroll::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:8px}
+  .flip-q{font-family:"Fraunces",serif;font-size:clamp(1.25rem,3.4vw,1.7rem);font-weight:500;line-height:1.3;letter-spacing:-.01em}
+  .flip-qnum{color:var(--ink-faint);font-weight:500}
+  .flip-tap{flex:0 0 auto;font-size:12px;color:var(--ink-faint);padding-top:12px;padding-right:14px}
+  .edit-badge{font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;color:var(--accent);background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 25%,transparent);padding:2px 7px;border-radius:999px;margin-left:6px;vertical-align:middle}
+  .flash-tools{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px}
+  .ftool{border:1px solid var(--line-strong);background:var(--surface);color:var(--ink-soft);font:inherit;font-size:12.5px;font-weight:600;padding:6px 13px;border-radius:999px;cursor:pointer;transition:.13s var(--ease)}
+  .ftool:hover{color:var(--ink);border-color:var(--ink-faint);transform:translateY(-1px)}
+  .flash-editbox{margin-top:18px;border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:16px;background:var(--surface);box-shadow:var(--shadow-sm);padding:20px 22px}
+  .flash-edit-ta{width:100%;min-height:clamp(220px,42vh,360px);resize:vertical;background:var(--paper);border:1px solid var(--line-strong);color:var(--ink);border-radius:12px;padding:14px 15px;font:inherit;font-size:15px;line-height:1.7;margin-top:12px;outline:none}
+  .flash-edit-ta:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+  .edit-actions{display:flex;gap:8px;align-items:center;margin-top:14px;flex-wrap:wrap}
+  .edit-hint{font-weight:400;color:var(--ink-faint);text-transform:none;letter-spacing:0}
+  .edit-note{font-size:12px;color:var(--ink-faint);margin-top:12px;line-height:1.5}
+  .fmt-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .fmtbtn{border:1px solid var(--line-strong);background:var(--surface);color:var(--ink-soft);font:inherit;font-size:12.5px;font-weight:600;padding:6px 12px;border-radius:9px;cursor:pointer;transition:.13s}
+  .fmtbtn:hover{color:var(--ink);border-color:var(--ink-faint)}
+  .fmt-hint{font-size:11.5px;color:var(--ink-faint)}
+  .fmt-hint code{background:var(--surface-2);border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:11px}
+  .fmt-prev-label{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);font-weight:700;margin:14px 0 6px}
+  .fmt-preview{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:14px 16px;font-size:15px;line-height:1.7;max-height:240px;overflow-y:auto;color:var(--ink)}
+  .btnrow{display:flex;justify-content:space-between;gap:10px;margin-top:22px;flex-wrap:wrap}
+  .self-grade{display:flex;gap:10px}
+  .empty{text-align:center;color:var(--ink-soft);padding:42px 12px;line-height:1.7}
+  .pfoot{text-align:center;color:var(--ink-faint);font-size:12.5px;margin-top:34px;line-height:1.8;padding-top:22px;border-top:1px solid var(--line)}
+  .toollink{color:var(--accent);cursor:pointer;text-decoration:underline;font-weight:600}
+  @media(max-width:560px){ .panel{padding:0 14px 56px} }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="inner">
+    <a class="brand" href="../../index.html"><span class="mark">L</span><span><b>LexFlip</b><small>Prawo cywilne</small></span></a>
+    <div class="spacer"></div>
+    <a class="btn btn--ghost btn--sm" href="../../index.html">← Przedmioty</a>
+    <button class="iconbtn" id="themeBtn" title="Przełącz motyw" aria-label="Przełącz motyw"></button>
+    <div id="authSlot"></div>
+  </div>
+</header>
+
+<main class="panel">
+  <div class="phead">
+    <div class="eyebrow">Rok II · Zobowiązania</div>
+    <h1>Prawo Cywilne</h1>
+    <div class="sub">Opracowanie zagadnień egzaminacyjnych · prof. dr hab. B. Fuchs</div>
+  </div>
+
+  <div class="controls">
+    <div class="ctl-row">
+      <span class="ctl-lab">Zakres</span>
+      <select id="catsel"></select>
+      <label class="chk"><input type="checkbox" id="shuffle"> Losuj kolejność</label>
+      <label class="chk"><input type="checkbox" id="onlyhard"> Tylko niezaliczone</label>
+    </div>
+    <div class="ctl-row">
+      <span class="ctl-lab">Pokaż</span>
+      <div class="segbar" id="flagbar">
+        <button class="seg active" data-flag="all">Wszystkie</button>
+        <button class="seg" data-flag="hard">⚠ Trudne</button>
+        <button class="seg" data-flag="fav">☆ Ulubione</button>
+      </div>
+    </div>
+  </div>
+  <div class="ctl-row" style="justify-content:center;margin:18px 0 0">
+    <button class="btn btn--sm" id="btnStats">Statystyki</button>
+    <button class="btn btn--sm" id="btnNote">＋ Wrzuć notatkę</button>
+  </div>
+
+  <div class="meta">
+    <span id="counter">Pytanie 0 z 0</span>
+    <span id="score">Opanowane: 0</span>
+  </div>
+  <div class="bar"><i id="barfill"></i></div>
+
+  <div id="stage"></div>
+
+  <div class="pfoot">
+    Opracowanie na podstawie wykładów i materiałów z Prawa Cywilnego (Zobowiązania).<br>
+    Treść pomocnicza. <span class="toollink" id="resetbtn">Wyczyść postępy nauki</span>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script src="../../assets/config.js"></script>
+<script src="../../assets/store.js"></script>
+<script src="../../assets/features.js"></script>
+<script>
+const SUBJECT="prawo-cywilne";
+let store={}, DATA=[], GLOBAL_OVR={}, flashEdit=false;
+let deck=[], idx=0, answered=false;
+const $ = s=>document.querySelector(s);
+
+/* treść efektywna: edycja użytkownika → globalna (admin) → fabryczna (q.a) */
+function answerText(q){
+  const p = store.edits && store.edits[q.id] && store.edits[q.id].a;
+  if(p!=null) return p;
+  const g = GLOBAL_OVR[q.id] && GLOBAL_OVR[q.id].a;
+  if(g!=null) return g;
+  return q.a||"";
+}
+function hasUserEdit(q){ return !!(store.edits && store.edits[q.id] && store.edits[q.id].a!=null); }
+function hasGlobalEdit(q){ return !!(GLOBAL_OVR[q.id] && GLOBAL_OVR[q.id].a!=null); }
+function saveStore(){ Powtorka.save(SUBJECT, store); }
+function shuffleArr(a){ for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];} return a; }
+function escapeHTML(s){ return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+function applyDefaults(){
+  store.cat = store.cat || "all";
+  store.flagFilter = store.flagFilter || "all";
+  store.shuffle = store.shuffle || false;
+  store.onlyhard = store.onlyhard || false;
+  store.mastered = store.mastered || {};
+  store.flags = store.flags || {};
+  store.edits = store.edits || {};
+}
+function buildDeck(){
+  let list = DATA.slice();
+  if(store.cat!=="all") list = list.filter(q=>q.kat===store.cat);
+  if(store.onlyhard)   list = list.filter(q=>!store.mastered[q.id]);
+  if(store.flagFilter==="hard") list = list.filter(q=>store.flags[q.id]&&store.flags[q.id].hard);
+  else if(store.flagFilter==="fav") list = list.filter(q=>store.flags[q.id]&&store.flags[q.id].fav);
+  if(store.shuffle) shuffleArr(list);
+  deck=list; idx=0; answered=false;
+}
+function fillCats(){
+  const cats=[...new Set(DATA.map(q=>q.kat))];
+  $("#catsel").innerHTML = `<option value="all">Wszystko (${DATA.length})</option>` +
+    cats.map(c=>{const n=DATA.filter(q=>q.kat===c).length;return `<option value="${c}">${c} (${n})</option>`}).join("");
+  $("#catsel").value = store.cat;
+}
+
+function render(){
+  const total=deck.length;
+  $("#counter").textContent = total? `Pytanie ${idx+1} z ${total}` : "Brak pytań";
+  const mc=Object.values(store.mastered).filter(Boolean).length;
+  $("#score").textContent = `Opanowane: ${mc} / ${DATA.length}`;
+  $("#barfill").style.width = total? `${(idx)/(total)*100}%` : "0%";
+  const stage=$("#stage");
+  if(!total){ stage.innerHTML=`<div class="card"><div class="empty">Brak pytań dla wybranego zakresu.<br>Odznacz „Tylko niezaliczone" lub zmień filtr.</div></div>`; return; }
+  const q=deck[idx], fl=store.flags[q.id]||{};
+  let inner=`<div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
+      <span class="chip">${escapeHTML(q.kat)}</span>
+      <span class="flagbtns">
+        <button class="flagbtn hard ${fl.hard?'on':''}" id="flagHard">⚠ Trudne</button>
+        <button class="flagbtn fav ${fl.fav?'on':''}" id="flagFav">☆ Ulubione</button>
+      </span>
+    </div>`;
+  inner += flashEdit ? renderEdit(q) : renderFlash(q);
+  inner += `</div>`;
+  stage.innerHTML=inner;
+  wireCard(q);
+}
+function renderFlash(q){
+  const admin = Powtorka.isAdmin && Powtorka.isAdmin();
+  const badge = hasUserEdit(q) ? '<span class="edit-badge">Twoja edycja</span>' : (hasGlobalEdit(q) ? '<span class="edit-badge">edytowane</span>' : '');
+  let tools = `<div class="flash-tools"><button class="ftool" id="flashEditBtn">✎ Edytuj odpowiedź</button>`;
+  if(hasUserEdit(q))            tools += `<button class="ftool" id="restoreMine">↺ ${admin?'fabryczne u mnie':'Przywróć fabryczne'}</button>`;
+  if(admin && hasGlobalEdit(q)) tools += `<button class="ftool" id="restoreAll">↺ fabryczne dla wszystkich</button>`;
+  tools += `</div>`;
+  return `
+    <div class="flip${answered?' is-flipped':''}" id="flipcard">
+      <div class="flip-inner">
+        <div class="flip-face flip-front">
+          <div class="flip-corner">Pytanie</div>
+          <div class="flip-scroll"><div class="flip-q"><span class="flip-qnum">${q.id}.</span> ${escapeHTML(q.q)}</div></div>
+          <div class="flip-tap">↻ kliknij kartę, aby zobaczyć odpowiedź</div>
+        </div>
+        <div class="flip-face flip-back">
+          <div class="flip-corner">Odpowiedź ${badge}</div>
+          <div class="flip-scroll"><div class="fmt">${PUI.formatText(answerText(q))}</div></div>
+          <div class="flip-tap">↻ kliknij, aby wrócić do pytania</div>
+        </div>
+      </div>
+    </div>
+    ${tools}
+    <div class="btnrow">
+      <button class="btn btn--ghost" id="prev">← Wstecz</button>
+      <div id="flashmid"></div>
+      <button class="btn" id="next">Dalej →</button>
+    </div>`;
+}
+function renderEdit(q){
+  const admin = Powtorka.isAdmin && Powtorka.isAdmin();
+  return `
+    <div class="flash-editbox">
+      <div class="flip-corner">Edytujesz odpowiedź <span class="edit-hint">· pytanie ${q.id}</span></div>
+      <div class="fmt-toolbar">
+        <button type="button" class="fmtbtn" data-fmt="bold"><b>B</b> Pogrub</button>
+        <button type="button" class="fmtbtn" data-fmt="bullet">• Lista</button>
+        <span class="fmt-hint">Zaznacz i kliknij. Tabele: <code>| a | b |</code> i wiersz <code>|---|---|</code>.</span>
+      </div>
+      <textarea id="editTa" class="flash-edit-ta">${escapeHTML(answerText(q))}</textarea>
+      <div class="fmt-prev-label">Podgląd na żywo</div>
+      <div class="fmt-preview fmt" id="editPreview"></div>
+      <div class="edit-actions">
+        <button class="btn btn--ghost" id="editCancel">Anuluj</button>
+        <div style="flex:1"></div>
+        ${admin ? `<button class="btn" id="editSaveMine">Zapisz u mnie</button><button class="btn btn--primary" id="editSaveAll">Zapisz dla wszystkich</button>`
+                : `<button class="btn btn--primary" id="editSaveMine">Zapisz</button>`}
+      </div>
+      <div class="edit-note">Oryginał („fabryczny") zostaje zachowany — zawsze możesz go przywrócić.</div>
+    </div>`;
+}
+function updateFlashMid(q){
+  const mid=$("#flashmid"); if(!mid) return;
+  if(answered){
+    mid.innerHTML=`<div class="self-grade"><button class="btn btn--no" id="again">Powtórzę</button><button class="btn btn--ok" id="know">Umiem ✓</button></div>`;
+    const k=$("#know"), a=$("#again");
+    if(k) k.onclick=()=>{ store.mastered[q.id]=true; saveStore(); markStudied(); goNext(); };
+    if(a) a.onclick=()=>{ store.mastered[q.id]=false; saveStore(); markStudied(); goNext(); };
+    markStudied();
+  } else {
+    mid.innerHTML=`<span style="color:var(--ink-faint);font-size:13px">Kliknij fiszkę, aby ją odwrócić</span>`;
+  }
+}
+function wrapSel(ta,b,a){ const s=ta.selectionStart,e=ta.selectionEnd,v=ta.value,sel=v.slice(s,e); ta.value=v.slice(0,s)+b+sel+a+v.slice(e); ta.focus(); ta.setSelectionRange(s+b.length,s+b.length+sel.length); }
+function bulletSel(ta){ const s=ta.selectionStart,e=ta.selectionEnd,v=ta.value; let ls=v.lastIndexOf("\n",s-1)+1,le=v.indexOf("\n",e); if(le===-1)le=v.length; const blk=v.slice(ls,le).split("\n").map(l=>l.trim()===""?l:(/^\s*[-*•–—]\s+/.test(l)?l:"- "+l)).join("\n"); ta.value=v.slice(0,ls)+blk+v.slice(le); ta.focus(); ta.setSelectionRange(ls,ls+blk.length); }
+
+function wireCard(q){
+  const fh=$("#flagHard"), ff=$("#flagFav");
+  if(fh) fh.onclick=()=>toggleFlag(q.id,"hard");
+  if(ff) ff.onclick=()=>toggleFlag(q.id,"fav");
+  const prev=$("#prev"), next=$("#next");
+  if(prev) prev.onclick=()=>{ if(idx>0){ idx--; answered=false; render(); } };
+  if(next) next.onclick=()=>goNext();
+
+  if(flashEdit){
+    const ta=$("#editTa"), prev2=$("#editPreview");
+    const upd=()=>{ if(prev2) prev2.innerHTML=PUI.formatText(ta.value); };
+    upd(); ta.addEventListener("input", upd);
+    document.querySelectorAll(".fmtbtn").forEach(b=>b.onclick=()=>{ b.dataset.fmt==="bold"?wrapSel(ta,"**","**"):bulletSel(ta); upd(); });
+    $("#editCancel").onclick=()=>{ flashEdit=false; answered=true; render(); };
+    const sm=$("#editSaveMine"); if(sm) sm.onclick=()=>{ store.edits[q.id]=store.edits[q.id]||{}; store.edits[q.id].a=ta.value; saveStore(); flashEdit=false; answered=true; render(); PUI.toast("Zapisano Twoją wersję."); };
+    const sa=$("#editSaveAll"); if(sa) sa.onclick=async()=>{
+      sa.disabled=true; sa.textContent="Zapisywanie…";
+      try{ await Powtorka.setGlobalOverride(SUBJECT, String(q.id), "a", ta.value); GLOBAL_OVR[q.id]=GLOBAL_OVR[q.id]||{}; GLOBAL_OVR[q.id].a=ta.value; if(store.edits[q.id]) delete store.edits[q.id].a; saveStore(); flashEdit=false; answered=true; render(); PUI.toast("Zapisano dla wszystkich."); }
+      catch(e){ PUI.toast("Błąd zapisu: "+(e&&e.message||e)); sa.disabled=false; sa.textContent="Zapisz dla wszystkich"; }
+    };
+    return;
+  }
+  const flip=$("#flipcard");
+  updateFlashMid(q);
+  if(flip) flip.onclick=()=>{ answered=flip.classList.toggle("is-flipped"); updateFlashMid(q); };
+  const eb=$("#flashEditBtn"); if(eb) eb.onclick=()=>{ flashEdit=true; answered=true; render(); };
+  const rm=$("#restoreMine"); if(rm) rm.onclick=()=>{ if(store.edits[q.id]) delete store.edits[q.id].a; saveStore(); answered=true; render(); PUI.toast("Przywrócono fabryczną treść (u Ciebie)."); };
+  const ra=$("#restoreAll"); if(ra) ra.onclick=async()=>{ if(!confirm("Przywrócić fabryczną treść tej odpowiedzi DLA WSZYSTKICH?")) return; try{ await Powtorka.clearGlobalOverride(SUBJECT, String(q.id), "a"); if(GLOBAL_OVR[q.id]) delete GLOBAL_OVR[q.id].a; answered=true; render(); PUI.toast("Przywrócono fabryczne dla wszystkich."); }catch(e){ PUI.toast("Błąd: "+(e&&e.message||e)); } };
+}
+function toggleFlag(id,kind){
+  store.flags[id]=store.flags[id]||{}; store.flags[id][kind]=!store.flags[id][kind]; saveStore();
+  const btn=kind==="hard"?$("#flagHard"):$("#flagFav"); if(btn) btn.classList.toggle("on", !!store.flags[id][kind]);
+}
+function goNext(){
+  if(idx<deck.length-1){ idx++; answered=false; render(); }
+  else { answered=false; $("#stage").innerHTML=`<div class="card"><div class="empty">🎉 To było ostatnie pytanie w tym zakresie.<br><br><button class="btn btn--primary" id="restart">Zacznij od nowa</button></div></div>`; $("#restart").onclick=()=>{ buildDeck(); render(); }; $("#barfill").style.width="100%"; }
+}
+
+let _studied=false;
+function markStudied(){ if(_studied) return; _studied=true; Powtorka.touchStreak().then(renderAuthSlot); }
+
+/* ---- statystyki ---- */
+function openStats(){
+  const total=DATA.length, mastered=Object.values(store.mastered).filter(Boolean).length;
+  const hard=Object.values(store.flags).filter(f=>f&&f.hard).length, fav=Object.values(store.flags).filter(f=>f&&f.fav).length;
+  const cats=[...new Set(DATA.map(q=>q.kat))];
+  const catRows=cats.map(c=>{ const inC=DATA.filter(q=>q.kat===c); const m=inC.filter(q=>store.mastered[q.id]).length; const pct=inC.length?Math.round(m/inC.length*100):0;
+    return `<div class="st-row"><span class="lab">${PUI.esc(c)}</span><span class="st-track"><i style="width:${pct}%"></i></span><span class="num">${m}/${inC.length}</span></div>`; }).join("");
+  const html=`<div class="st-grid">
+      <div class="st-card"><div class="v">${total?Math.round(mastered/total*100):0}%</div><div class="k">opanowane (${mastered}/${total})</div></div>
+      <div class="st-card"><div class="v">${Powtorka.getStreak()}</div><div class="k">passa dni 🔥</div></div>
+      <div class="st-card"><div class="v">${hard}</div><div class="k">trudne ⚠</div></div>
+      <div class="st-card"><div class="v">${fav}</div><div class="k">ulubione ☆</div></div>
+    </div><div class="st-h">Opanowanie wg działu</div>${catRows}`;
+  PUI.modal({ title:"Statystyki", sub:"Prawo Cywilne", wide:true, html });
+}
+
+/* ---- kontrolki ---- */
+$("#catsel").addEventListener("change",e=>{ store.cat=e.target.value; saveStore(); buildDeck(); render(); });
+$("#shuffle").addEventListener("change",e=>{ store.shuffle=e.target.checked; saveStore(); buildDeck(); render(); });
+$("#onlyhard").addEventListener("change",e=>{ store.onlyhard=e.target.checked; saveStore(); buildDeck(); render(); });
+$("#flagbar").addEventListener("click",e=>{ const s=e.target.closest(".seg"); if(!s) return; store.flagFilter=s.dataset.flag; saveStore(); document.querySelectorAll("#flagbar .seg").forEach(x=>x.classList.toggle("active",x.dataset.flag===store.flagFilter)); buildDeck(); render(); });
+$("#btnStats").addEventListener("click", openStats);
+$("#btnNote").addEventListener("click", ()=>PUI.notesOpen({subject:SUBJECT, subjectName:"Prawo Cywilne"}));
+$("#resetbtn").addEventListener("click",()=>{ if(confirm("Wyczyścić zapisane postępy (opanowane pytania)?")){ store.mastered={}; saveStore(); render(); } });
+
+/* ---- topbar ---- */
+const ICON={ sun:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M19.1 4.9l-1.8 1.8M6.7 17.3l-1.8 1.8"/></svg>',
+  moon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></svg>' };
+function paintTheme(){ $("#themeBtn").innerHTML = Powtorka.getTheme()==="dark"? ICON.sun : ICON.moon; }
+$("#themeBtn").onclick=()=>{ Powtorka.toggleTheme(); paintTheme(); };
+function renderAuthSlot(){
+  const slot=$("#authSlot"), u=Powtorka.getUser(); const chip=PUI.streakChip(Powtorka.getStreak());
+  if(u){ const ini=(u.name||"?").trim().slice(0,2).toUpperCase(); slot.innerHTML=`<span style="display:inline-flex;align-items:center;gap:10px">${chip}<span class="userchip" style="cursor:default"><span class="avatar">${ini}</span><span class="nm">${u.name}</span></span></span>`; }
+  else slot.innerHTML=`<span style="display:inline-flex;align-items:center;gap:10px">${chip}<a class="btn btn--primary btn--sm" href="../../index.html">Zaloguj się</a></span>`;
+}
+
+/* ---- init ---- */
+async function boot(){
+  paintTheme();
+  await Powtorka.init();
+  renderAuthSlot();
+  Powtorka.onChange(renderAuthSlot);
+  const rows = await Powtorka.loadQuestions(SUBJECT);
+  if(Powtorka.isCloud() && (!rows || !rows.length)){ PUI.accessGate(document.querySelector("main.panel")); return; }
+  DATA = rows ? rows.map(r=>r.payload) : [];
+  GLOBAL_OVR = await Powtorka.loadOverrides(SUBJECT);
+  store = await Powtorka.load(SUBJECT);
+  applyDefaults();
+  if(!DATA.length){ $("#stage").innerHTML=`<div class="card"><div class="empty">Brak pytań w bazie dla tego przedmiotu.</div></div>`; return; }
+  fillCats();
+  $("#shuffle").checked=store.shuffle; $("#onlyhard").checked=store.onlyhard;
+  document.querySelectorAll("#flagbar .seg").forEach(x=>x.classList.toggle("active",x.dataset.flag===store.flagFilter));
+  buildDeck(); render();
+}
+boot();
+</script>
+</body>
+</html>

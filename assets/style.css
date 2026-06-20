@@ -270,6 +270,22 @@ a{color:inherit}
 .doc .lead{font-size:16px}
 .doc strong{color:var(--ink)}
 
+/* ---------------- formatowana treść (mini-Markdown) ---------------- */
+.fmt p{margin:0 0 10px} .fmt p:first-child{margin-top:0} .fmt p:last-child{margin-bottom:0}
+.fmt ul{list-style:none;margin:8px 0 10px;padding:0}
+.fmt ul>li{position:relative;padding-left:20px;margin-bottom:7px;line-height:1.6}
+.fmt ul>li::before{content:"•";position:absolute;left:4px;top:-1px;color:var(--accent);font-weight:700;font-size:1.05em}
+.fmt ol{margin:8px 0 10px;padding-left:22px}
+.fmt ol>li{margin-bottom:7px;line-height:1.6;padding-left:3px}
+.fmt strong{font-weight:700;color:var(--ink)}
+.fmt code{background:var(--surface-2);border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:.92em}
+.fmt blockquote{margin:10px 0;padding:9px 14px;border-left:3px solid var(--accent);background:var(--surface-2);border-radius:0 9px 9px 0;color:var(--ink-soft)}
+.fmt .fmt-tablewrap{overflow-x:auto;margin:10px 0}
+.fmt table{border-collapse:collapse;width:100%;font-size:13.5px;line-height:1.5}
+.fmt th,.fmt td{border:1px solid var(--line-strong);padding:7px 11px;text-align:left;vertical-align:top}
+.fmt th{background:var(--surface-2);font-weight:700;font-size:12px;letter-spacing:.02em}
+.fmt tbody tr:nth-child(even) td{background:color-mix(in srgb,var(--surface-2) 55%,transparent)}
+
 /* ---------------- footer ---------------- */
 .foot{margin-top:46px;padding:26px 0 40px;border-top:1px solid var(--line);color:var(--ink-faint);font-size:12.5px;text-align:center;line-height:1.7}
 .foot a{color:var(--ink-soft);text-decoration:none}

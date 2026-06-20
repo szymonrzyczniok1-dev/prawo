@@ -268,29 +268,53 @@
     go.onclick=submit; inp.addEventListener("keydown",e=>{ if(e.key==="Enter") submit(); }); inp.focus();
   }
 
-  /* ---------------- bezpieczne formatowanie treści ---------------- */
-  // Obsługuje: **pogrubienie**, listy (linie zaczynające się od - * • – —),
-  // akapity (pusta linia) i pojedyncze złamania linii. Resztę escapuje (XSS-safe).
+  /* ---------------- bezpieczne formatowanie treści (mini-Markdown) ----------------
+     Obsługuje: **pogrubienie**, `kod`, listy (- * • – —), listy numerowane (1.),
+     tabele (| a | b |), cytaty (> ), akapity. Wszystko escapowane (XSS-safe). */
   function formatText(raw) {
     raw = raw == null ? "" : String(raw);
-    const inline = (s) => esc(s).replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+    const inline = (s) => esc(s)
+      .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+      .replace(/`([^`]+)`/g, "<code>$1</code>");
+    const cells = (l) => l.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map(c => c.trim());
     const isBullet = (l) => /^\s*[-*•–—]\s+/.test(l);
+    const isNum = (l) => /^\s*\d+\.\s+/.test(l);
+    const isRow = (l) => /^\s*\|.*\|\s*$/.test(l);
+    const isQuote = (l) => /^\s*>\s?/.test(l);
+    const isSep = (l) => /^\s*\|?[\s:|-]+\|?\s*$/.test(l) && l.includes("-");
     const lines = raw.split(/\r?\n/);
-    let html = "", listOpen = false, para = [];
-    const flushPara = () => { if (para.length) { html += "<p>" + para.join("<br>") + "</p>"; para = []; } };
-    const closeList = () => { if (listOpen) { html += "</ul>"; listOpen = false; } };
-    lines.forEach((line) => {
-      if (isBullet(line)) {
-        flushPara();
-        if (!listOpen) { html += "<ul>"; listOpen = true; }
-        html += "<li>" + inline(line.replace(/^\s*[-*•–—]\s+/, "")) + "</li>";
-      } else if (line.trim() === "") {
-        flushPara(); closeList();
-      } else {
-        closeList(); para.push(inline(line));
+    let html = "", i = 0;
+    while (i < lines.length) {
+      const line = lines[i];
+      if (line.trim() === "") { i++; continue; }
+      // TABELA (wiersz + linia separatora)
+      if (isRow(line) && i + 1 < lines.length && isSep(lines[i + 1])) {
+        const head = cells(line); i += 2; const rows = [];
+        while (i < lines.length && isRow(lines[i])) { rows.push(cells(lines[i])); i++; }
+        html += '<div class="fmt-tablewrap"><table><thead><tr>' + head.map(c => "<th>" + inline(c) + "</th>").join("") +
+          "</tr></thead><tbody>" + rows.map(r => "<tr>" + r.map(c => "<td>" + inline(c) + "</td>").join("") + "</tr>").join("") +
+          "</tbody></table></div>"; continue;
       }
-    });
-    flushPara(); closeList();
+      // CYTAT
+      if (isQuote(line)) {
+        const buf = []; while (i < lines.length && isQuote(lines[i])) { buf.push(lines[i].replace(/^\s*>\s?/, "")); i++; }
+        html += "<blockquote>" + buf.map(inline).join("<br>") + "</blockquote>"; continue;
+      }
+      // LISTA punktowana
+      if (isBullet(line)) {
+        const buf = []; while (i < lines.length && isBullet(lines[i])) { buf.push(lines[i].replace(/^\s*[-*•–—]\s+/, "")); i++; }
+        html += "<ul>" + buf.map(it => "<li>" + inline(it) + "</li>").join("") + "</ul>"; continue;
+      }
+      // LISTA numerowana
+      if (isNum(line)) {
+        const buf = []; while (i < lines.length && isNum(lines[i])) { buf.push(lines[i].replace(/^\s*\d+\.\s+/, "")); i++; }
+        html += "<ol>" + buf.map(it => "<li>" + inline(it) + "</li>").join("") + "</ol>"; continue;
+      }
+      // AKAPIT
+      const buf = [];
+      while (i < lines.length && lines[i].trim() !== "" && !isBullet(lines[i]) && !isNum(lines[i]) && !isRow(lines[i]) && !isQuote(lines[i])) { buf.push(lines[i]); i++; }
+      html += "<p>" + buf.map(inline).join("<br>") + "</p>";
+    }
     return html || "<p></p>";
   }
 
