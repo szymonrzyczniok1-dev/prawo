@@ -441,7 +441,7 @@ ${FONT_LINKS}
 </head>
 <body>
 
-<div id="loginView" class="login-wrap" style="display:none">
+<div id="loginView" class="login-wrap">
   <div class="login-card">
     ${LOGO_SVG.replace('class="logo"', 'class="logo" style="--navy:#25384a;--gray:#6d6e71;--orange:#f5821f"')}
     <h1>MUREK</h1>
@@ -611,10 +611,20 @@ ${FONT_LINKS}
 <script>
 (function(){
   "use strict";
+  window.addEventListener("error", function(ev){
+    var el = document.getElementById("loginErr");
+    if (el && !el.textContent) el.textContent = "Błąd aplikacji: " + (ev.message || "nieznany");
+  });
   var BASE = location.pathname.replace(/\\/+$/, "");
   var KEYSTORE = "murekAdminKey";
   var state = { key: null, sites: [], site: null, expenses: [], advances: [] };
   var STATUS_LABELS = { active: "W trakcie", done: "Zakończona", archived: "Archiwum" };
+
+  // localStorage potrafi rzucać wyjątkiem (tryb prywatny, blokada ciasteczek) —
+  // wtedy klucz trzeba wpisywać przy każdej wizycie, ale strona ma działać.
+  function storeGet(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
+  function storeSet(k, v){ try { localStorage.setItem(k, v); } catch(e){} }
+  function storeDel(k){ try { localStorage.removeItem(k); } catch(e){} }
 
   function $(id){ return document.getElementById(id); }
   function esc(s){
@@ -669,7 +679,7 @@ ${FONT_LINKS}
   }
   function logout(){
     state.key = null;
-    localStorage.removeItem(KEYSTORE);
+    storeDel(KEYSTORE);
     showLogin();
   }
   $("logoutBtn").onclick = logout;
@@ -689,7 +699,7 @@ ${FONT_LINKS}
     tryLogin(key).then(function(ok){
       if (!ok) { $("loginErr").textContent = "Nieprawidłowy klucz dostępu."; return; }
       state.key = key;
-      localStorage.setItem(KEYSTORE, key);
+      storeSet(KEYSTORE, key);
       showApp();
       load();
     }).catch(function(){ $("loginErr").textContent = "Błąd połączenia."; });
@@ -1139,7 +1149,7 @@ ${FONT_LINKS}
   // ---------- start ----------
   $("advDate").value = todayIso();
   $("expDate").value = todayIso();
-  var saved = localStorage.getItem(KEYSTORE);
+  var saved = storeGet(KEYSTORE);
   if (saved) {
     state.key = saved;
     showApp();
