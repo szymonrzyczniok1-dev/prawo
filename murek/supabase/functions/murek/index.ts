@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
       const token = path.slice("/api/client/".length);
       if (!token) return json({ error: "Brak tokenu" }, 400);
       const { data: site } = await supa.from("ct_sites")
-        .select("id,name,client_name").eq("share_token", token).maybeSingle();
+        .select("id,name,client_name,status").eq("share_token", token).maybeSingle();
       if (!site) return json({ error: "Nie znaleziono rozliczenia" }, 404);
       const [{ data: expenses }, { data: advances }] = await Promise.all([
         supa.from("ct_expenses")
@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
           .order("created_at", { ascending: true }),
       ]);
       return json({
-        site: { name: site.name, client_name: site.client_name },
+        site: { name: site.name, client_name: site.client_name, status: site.status },
         expenses: expenses ?? [],
         advances: advances ?? [],
       });
@@ -103,7 +103,7 @@ Deno.serve(async (req) => {
 
       if (method === "GET" && path === "/api/state") {
         const { data: sites } = await supa.from("ct_sites")
-          .select("id,name,client_name,share_token,created_at")
+          .select("id,name,client_name,share_token,status,created_at")
           .order("created_at", { ascending: true });
         const list = sites ?? [];
         const wanted = url.searchParams.get("site_id");
@@ -145,6 +145,12 @@ Deno.serve(async (req) => {
           patch.client_name = typeof b.client_name === "string"
             ? b.client_name.trim().slice(0, 200) || null : null;
         }
+        if (typeof b.status === "string") {
+          if (!["active", "done", "archived"].includes(b.status)) {
+            return json({ error: "Nieprawidłowy status" }, 400);
+          }
+          patch.status = b.status;
+        }
         const { error } = await supa.from("ct_sites").update(patch).eq("id", b.id);
         if (error) return json({ error: error.message }, 500);
         return json({ ok: true });
@@ -182,6 +188,32 @@ Deno.serve(async (req) => {
         return json({ expense: data });
       }
 
+      if (method === "PATCH" && path === "/api/expenses") {
+        const b = await req.json().catch(() => ({}));
+        if (typeof b.id !== "string") return json({ error: "Brak id" }, 400);
+        const patch: Record<string, unknown> = {};
+        if ("spent_on" in b) patch.spent_on = dateOr(b.spent_on, today());
+        if (typeof b.description === "string" && b.description.trim()) {
+          patch.description = b.description.trim().slice(0, 300);
+        }
+        if (typeof b.category === "string" && b.category.trim()) {
+          patch.category = b.category.trim().slice(0, 60);
+        }
+        if ("gross" in b) {
+          const g = money(b.gross);
+          if (g === null || g <= 0) return json({ error: "Nieprawidłowa kwota" }, 400);
+          patch.gross = g;
+        }
+        if ("vat_rate" in b) {
+          const v = money(b.vat_rate);
+          if (v === null || v > 100) return json({ error: "Nieprawidłowa stawka VAT" }, 400);
+          patch.vat_rate = v;
+        }
+        const { error } = await supa.from("ct_expenses").update(patch).eq("id", b.id);
+        if (error) return json({ error: error.message }, 500);
+        return json({ ok: true });
+      }
+
       if (method === "DELETE" && path === "/api/expenses") {
         const id = url.searchParams.get("id");
         if (!id) return json({ error: "Brak id" }, 400);
@@ -204,6 +236,24 @@ Deno.serve(async (req) => {
         }).select().single();
         if (error) return json({ error: error.message }, 500);
         return json({ advance: data });
+      }
+
+      if (method === "PATCH" && path === "/api/advances") {
+        const b = await req.json().catch(() => ({}));
+        if (typeof b.id !== "string") return json({ error: "Brak id" }, 400);
+        const patch: Record<string, unknown> = {};
+        if ("received_on" in b) patch.received_on = dateOr(b.received_on, today());
+        if ("note" in b) {
+          patch.note = typeof b.note === "string" ? b.note.trim().slice(0, 300) || null : null;
+        }
+        if ("amount" in b) {
+          const a = money(b.amount);
+          if (a === null || a <= 0) return json({ error: "Nieprawidłowa kwota" }, 400);
+          patch.amount = a;
+        }
+        const { error } = await supa.from("ct_advances").update(patch).eq("id", b.id);
+        if (error) return json({ error: error.message }, 500);
+        return json({ ok: true });
       }
 
       if (method === "DELETE" && path === "/api/advances") {
@@ -304,6 +354,9 @@ button.soft{background:#eef2f6; color:var(--navy)}
 button.soft:hover{background:#e2e9ef}
 button.danger{background:transparent; color:var(--red); padding:4px 8px; font-size:1rem}
 button.danger:hover{background:#fdecea}
+button.icon{background:transparent; color:var(--navy2); padding:4px 8px; font-size:1rem}
+button.icon:hover{background:#eef2f6}
+td.acts{white-space:nowrap; text-align:right}
 .table-wrap{overflow-x:auto}
 table{width:100%; border-collapse:collapse; font-size:.88rem}
 th{
@@ -345,6 +398,21 @@ footer.foot{
   text-align:center; color:var(--muted); font-size:.75rem; padding:24px 16px;
 }
 footer.foot b{color:var(--navy); letter-spacing:.1em}
+.sitebar{display:flex; align-items:center; gap:12px; margin-bottom:16px; flex-wrap:wrap}
+.sitebar h2{font-size:1.15rem; color:var(--navy)}
+.sitebar .muted{font-size:.85rem}
+.status-pill{font-size:.72rem; font-weight:600; padding:3px 12px; border-radius:99px; white-space:nowrap}
+.st-active{background:#fdeedd; color:#b35c0a}
+.st-done{background:#e2f4ea; color:#1d8a56}
+.st-archived{background:#e8ecf0; color:#64748b}
+@media print{
+  header.top{background:#fff; color:var(--navy)}
+  .brand .logo{--navy:#25384a; --gray:#6d6e71}
+  .brand-t strong{color:var(--navy)}
+  button,.top-actions select{display:none !important}
+  body{background:#fff}
+  .card,section.panel{box-shadow:none}
+}
 @media (max-width:640px){
   form.row .field{flex:1 1 45%}
   form.row button{flex:1 1 100%}
@@ -391,12 +459,18 @@ ${FONT_LINKS}
       <select id="siteSelect" title="Wybierz budowę"></select>
       <button class="ghost" id="newSiteBtn">+ Nowa budowa</button>
       <button class="ghost" id="shareBtn">Link dla klienta</button>
+      <button class="ghost" id="pdfBtn">Eksport PDF</button>
       <button class="ghost" id="siteCfgBtn">Ustawienia</button>
       <button class="ghost" id="logoutBtn">Wyloguj</button>
     </div>
   </header>
 
   <main>
+    <div class="sitebar">
+      <h2 id="siteNameLbl"></h2>
+      <span id="statusPill" class="status-pill"></span>
+      <span id="siteClientLbl" class="muted"></span>
+    </div>
     <div class="cards">
       <div class="card accent">
         <h3>Suma zaliczek</h3>
@@ -473,12 +547,51 @@ ${FONT_LINKS}
   <h3>Ustawienia budowy</h3>
   <div class="field"><label>Nazwa budowy</label><input type="text" id="cfgName"></div>
   <div class="field"><label>Klient</label><input type="text" id="cfgClient"></div>
+  <div class="field"><label>Status</label>
+    <select id="cfgStatus" style="width:100%">
+      <option value="active">W trakcie</option>
+      <option value="done">Zakończona</option>
+      <option value="archived">Archiwum</option>
+    </select>
+  </div>
   <div class="actions" style="justify-content:space-between">
     <button class="soft" style="color:var(--red)" id="cfgDelete">Usuń budowę</button>
     <span>
       <button class="soft" id="cfgCancel">Anuluj</button>
       <button id="cfgSave">Zapisz</button>
     </span>
+  </div>
+</dialog>
+
+<dialog id="expEditDialog">
+  <h3>Edytuj wydatek</h3>
+  <div class="field"><label>Data</label><input type="date" id="expEditDate"></div>
+  <div class="field"><label>Opis (na co)</label><input type="text" id="expEditDesc"></div>
+  <div class="field"><label>Kategoria</label>
+    <select id="expEditCat" style="width:100%">
+      <option>Materiały</option><option>Robocizna</option><option>Sprzęt</option>
+      <option>Transport</option><option>Opłaty</option><option>Inne</option>
+    </select>
+  </div>
+  <div class="field"><label>VAT</label>
+    <select id="expEditVat" style="width:100%"><option value="23">23%</option><option value="8">8%</option><option value="0">0%</option></select>
+  </div>
+  <div class="field"><label>Kwota brutto (zł)</label><input type="text" id="expEditGross" inputmode="decimal"></div>
+  <div class="preview" id="expEditPreview"></div>
+  <div class="actions">
+    <button class="soft" id="expEditCancel">Anuluj</button>
+    <button id="expEditSave">Zapisz zmiany</button>
+  </div>
+</dialog>
+
+<dialog id="advEditDialog">
+  <h3>Edytuj zaliczkę</h3>
+  <div class="field"><label>Data</label><input type="date" id="advEditDate"></div>
+  <div class="field"><label>Od kogo / notatka</label><input type="text" id="advEditNote"></div>
+  <div class="field"><label>Kwota (zł)</label><input type="text" id="advEditAmount" inputmode="decimal"></div>
+  <div class="actions">
+    <button class="soft" id="advEditCancel">Anuluj</button>
+    <button id="advEditSave">Zapisz zmiany</button>
   </div>
 </dialog>
 
@@ -501,6 +614,7 @@ ${FONT_LINKS}
   var BASE = location.pathname.replace(/\\/+$/, "");
   var KEYSTORE = "murekAdminKey";
   var state = { key: null, sites: [], site: null, expenses: [], advances: [] };
+  var STATUS_LABELS = { active: "W trakcie", done: "Zakończona", archived: "Archiwum" };
 
   function $(id){ return document.getElementById(id); }
   function esc(s){
@@ -605,12 +719,31 @@ ${FONT_LINKS}
     return { adv: adv, gross: gross, netto: netto, vat: vat, bal: r2(adv - gross) };
   }
 
+  function siteOption(s){
+    var label = esc(s.name) + (s.status === "done" ? " ✓" : "");
+    return '<option value="' + s.id + '"' + (state.site && s.id === state.site.id ? " selected" : "") + ">"
+      + label + "</option>";
+  }
+
   function render(){
     var sel = $("siteSelect");
-    sel.innerHTML = state.sites.map(function(s){
-      return '<option value="' + s.id + '"' + (state.site && s.id === state.site.id ? " selected" : "") + ">"
-        + esc(s.name) + "</option>";
-    }).join("");
+    var act = state.sites.filter(function(s){ return s.status !== "archived"; });
+    var arch = state.sites.filter(function(s){ return s.status === "archived"; });
+    var opts = act.map(siteOption).join("");
+    if (arch.length) {
+      opts += '<optgroup label="Archiwum">' + arch.map(siteOption).join("") + "</optgroup>";
+    }
+    sel.innerHTML = opts;
+
+    if (state.site) {
+      $("siteNameLbl").textContent = state.site.name;
+      var st = state.site.status || "active";
+      var pill = $("statusPill");
+      pill.textContent = STATUS_LABELS[st] || st;
+      pill.className = "status-pill st-" + st;
+      $("siteClientLbl").textContent = state.site.client_name
+        ? "Klient: " + state.site.client_name : "";
+    }
 
     var t = totals();
     $("cAdv").textContent = pln(t.adv);
@@ -643,7 +776,8 @@ ${FONT_LINKS}
         + "<td>" + (a.note ? esc(a.note) : '<span class="muted">—</span>') + "</td>"
         + '<td class="num">' + pln(a.amount) + "</td>"
         + '<td class="num">' + pln(sum) + "</td>"
-        + '<td><button class="danger" data-del-adv="' + a.id + '" title="Usuń">✕</button></td>'
+        + '<td class="acts"><button class="icon" data-edit-adv="' + a.id + '" title="Edytuj">✎</button>'
+        + '<button class="danger" data-del-adv="' + a.id + '" title="Usuń">✕</button></td>'
         + "</tr>";
     }).join("");
     tbl.innerHTML =
@@ -673,7 +807,8 @@ ${FONT_LINKS}
         + '<td class="num">' + pln(s.vat) + ' <span class="muted">(' + Number(x.vat_rate) + '%)</span></td>'
         + '<td class="num"><b>' + pln(g) + "</b></td>"
         + '<td class="num muted">' + pln(run) + "</td>"
-        + '<td><button class="danger" data-del-exp="' + x.id + '" title="Usuń">✕</button></td>'
+        + '<td class="acts"><button class="icon" data-edit-exp="' + x.id + '" title="Edytuj">✎</button>'
+        + '<button class="danger" data-del-exp="' + x.id + '" title="Usuń">✕</button></td>'
         + "</tr>";
     }).join("");
     tbl.innerHTML =
@@ -692,6 +827,10 @@ ${FONT_LINKS}
   document.addEventListener("click", function(e){
     var b = e.target.closest ? e.target.closest("button") : null;
     if (!b) return;
+    var edExp = b.getAttribute("data-edit-exp");
+    var edAdv = b.getAttribute("data-edit-adv");
+    if (edExp) openExpEdit(edExp);
+    if (edAdv) openAdvEdit(edAdv);
     var idExp = b.getAttribute("data-del-exp");
     var idAdv = b.getAttribute("data-del-adv");
     if (idExp && confirm("Usunąć ten wydatek?")) {
@@ -750,6 +889,74 @@ ${FONT_LINKS}
     }).catch(function(err){ alert(err.message); });
   });
 
+  // ---------- edycja wpisów ----------
+  function updateEditPreview(){
+    var g = parseAmount($("expEditGross").value);
+    var rate = Number($("expEditVat").value);
+    var el = $("expEditPreview");
+    if (!g) { el.innerHTML = ""; return; }
+    var s = split(g, rate);
+    el.innerHTML = "Rozbicie: netto <b>" + pln(s.netto) + "</b> + VAT " + rate + "% <b>"
+      + pln(s.vat) + "</b> = brutto <b>" + pln(g) + "</b>";
+  }
+  $("expEditGross").addEventListener("input", updateEditPreview);
+  $("expEditVat").addEventListener("change", updateEditPreview);
+
+  function openExpEdit(id){
+    var x = state.expenses.filter(function(e){ return e.id === id; })[0];
+    if (!x) return;
+    $("expEditDialog").setAttribute("data-id", id);
+    $("expEditDate").value = x.spent_on;
+    $("expEditDesc").value = x.description;
+    $("expEditCat").value = x.category;
+    $("expEditVat").value = String(Number(x.vat_rate));
+    $("expEditGross").value = String(Number(x.gross)).replace(".", ",");
+    updateEditPreview();
+    $("expEditDialog").showModal();
+  }
+  $("expEditCancel").onclick = function(){ $("expEditDialog").close(); };
+  $("expEditSave").onclick = function(){
+    var g = parseAmount($("expEditGross").value);
+    var desc = $("expEditDesc").value.trim();
+    if (!g) { alert("Podaj prawidłową kwotę."); return; }
+    if (!desc) { alert("Podaj opis wydatku."); return; }
+    api("/api/expenses", { method: "PATCH", body: JSON.stringify({
+      id: $("expEditDialog").getAttribute("data-id"),
+      spent_on: $("expEditDate").value || todayIso(),
+      description: desc,
+      category: $("expEditCat").value,
+      gross: g,
+      vat_rate: Number($("expEditVat").value)
+    })}).then(function(){
+      $("expEditDialog").close();
+      load(state.site.id);
+    }).catch(function(err){ alert(err.message); });
+  };
+
+  function openAdvEdit(id){
+    var a = state.advances.filter(function(e){ return e.id === id; })[0];
+    if (!a) return;
+    $("advEditDialog").setAttribute("data-id", id);
+    $("advEditDate").value = a.received_on;
+    $("advEditNote").value = a.note || "";
+    $("advEditAmount").value = String(Number(a.amount)).replace(".", ",");
+    $("advEditDialog").showModal();
+  }
+  $("advEditCancel").onclick = function(){ $("advEditDialog").close(); };
+  $("advEditSave").onclick = function(){
+    var a = parseAmount($("advEditAmount").value);
+    if (!a) { alert("Podaj prawidłową kwotę."); return; }
+    api("/api/advances", { method: "PATCH", body: JSON.stringify({
+      id: $("advEditDialog").getAttribute("data-id"),
+      received_on: $("advEditDate").value || todayIso(),
+      note: $("advEditNote").value.trim(),
+      amount: a
+    })}).then(function(){
+      $("advEditDialog").close();
+      load(state.site.id);
+    }).catch(function(err){ alert(err.message); });
+  };
+
   // ---------- budowy ----------
   $("siteSelect").addEventListener("change", function(){ load(this.value); });
 
@@ -773,6 +980,7 @@ ${FONT_LINKS}
     if (!state.site) return;
     $("cfgName").value = state.site.name;
     $("cfgClient").value = state.site.client_name || "";
+    $("cfgStatus").value = state.site.status || "active";
     $("cfgDialog").showModal();
   };
   $("cfgCancel").onclick = function(){ $("cfgDialog").close(); };
@@ -780,7 +988,8 @@ ${FONT_LINKS}
     api("/api/sites", { method: "PATCH", body: JSON.stringify({
       id: state.site.id,
       name: $("cfgName").value.trim(),
-      client_name: $("cfgClient").value.trim()
+      client_name: $("cfgClient").value.trim(),
+      status: $("cfgStatus").value
     })}).then(function(){
       $("cfgDialog").close();
       load(state.site.id);
@@ -810,6 +1019,83 @@ ${FONT_LINKS}
       setTimeout(function(){ $("shareCopy").textContent = "Kopiuj link"; }, 1600);
     });
   };
+
+  // ---------- raport PDF ----------
+  function printReport(){
+    if (!state.site) return;
+    var t = totals();
+    var st = state.site.status || "active";
+
+    var advRows = state.advances.length ? state.advances.map(function(a){
+      return "<tr><td>" + plDate(a.received_on) + "</td><td>" + (a.note ? esc(a.note) : "—") + "</td>"
+        + '<td class="num">' + pln(a.amount) + "</td></tr>";
+    }).join("") + '<tr class="sum"><td colspan="2">SUMA ZALICZEK</td><td class="num">' + pln(t.adv) + "</td></tr>"
+      : '<tr><td colspan="3">Brak wpisów.</td></tr>';
+
+    var expRows = state.expenses.length ? state.expenses.map(function(x){
+      var g = Number(x.gross), s = split(g, Number(x.vat_rate));
+      return "<tr><td>" + plDate(x.spent_on) + "</td><td>" + esc(x.description) + "</td><td>" + esc(x.category) + "</td>"
+        + '<td class="num">' + pln(s.netto) + "</td>"
+        + '<td class="num">' + Number(x.vat_rate) + "%</td>"
+        + '<td class="num">' + pln(s.vat) + "</td>"
+        + '<td class="num"><b>' + pln(g) + "</b></td></tr>";
+    }).join("") + '<tr class="sum"><td colspan="3">RAZEM</td>'
+      + '<td class="num">' + pln(t.netto) + "</td><td></td>"
+      + '<td class="num">' + pln(t.vat) + "</td>"
+      + '<td class="num">' + pln(t.gross) + "</td></tr>"
+      : '<tr><td colspan="7">Brak wpisów.</td></tr>';
+
+    var css = "body{font-family:Arial,Helvetica,sans-serif;color:#1e2c39;margin:28px;font-size:13px}"
+      + ".h{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #25384a;padding-bottom:14px;margin-bottom:16px}"
+      + ".brand{display:flex;align-items:center;gap:12px}"
+      + ".brand .logo{height:52px;width:auto;--navy:#25384a;--gray:#6d6e71;--orange:#f5821f}"
+      + ".brand-t{display:flex;flex-direction:column;line-height:1.15}"
+      + ".brand-t strong{font-size:1.3rem;letter-spacing:.14em;color:#25384a}"
+      + ".brand-t span{font-size:.6rem;letter-spacing:.22em;color:#f5821f;font-weight:600}"
+      + ".hr{text-align:right}"
+      + ".hr h1{font-size:1.05rem;color:#25384a;margin:0 0 4px}"
+      + ".hr div{font-size:.8rem;color:#41505e}"
+      + ".boxes{display:flex;gap:10px;margin:0 0 18px}"
+      + ".box{flex:1;border:1px solid #cfd8e0;border-radius:8px;padding:10px 12px;font-size:.72rem;color:#64748b}"
+      + ".box b{display:block;font-size:1.05rem;color:#25384a;margin-top:2px}"
+      + ".box span{display:block;font-size:.68rem;margin-top:2px}"
+      + "h2{font-size:.9rem;color:#25384a;margin:16px 0 8px}"
+      + "table{width:100%;border-collapse:collapse;font-size:.78rem}"
+      + "th{background:#25384a;color:#fff;text-align:left;padding:6px 8px;font-size:.68rem;letter-spacing:.05em}"
+      + "th.num,td.num{text-align:right;white-space:nowrap}"
+      + "td{padding:6px 8px;border-bottom:1px solid #dde5ec;vertical-align:top}"
+      + "tr.sum td{font-weight:700;border-top:2px solid #25384a;border-bottom:none}"
+      + ".ft{margin-top:26px;text-align:center;font-size:.68rem;color:#64748b;letter-spacing:.08em}"
+      + "@page{margin:12mm}";
+
+    var html = '<!doctype html><html lang="pl"><head><meta charset="utf-8">'
+      + "<title>Rozliczenie — " + esc(state.site.name) + "</title>"
+      + "<style>" + css + "</style></head><body>"
+      + '<div class="h">' + document.querySelector(".brand").outerHTML
+      + '<div class="hr"><h1>Rozliczenie budowy</h1>'
+      + "<div><b>" + esc(state.site.name) + "</b></div>"
+      + (state.site.client_name ? "<div>Klient: " + esc(state.site.client_name) + "</div>" : "")
+      + "<div>Status: " + (STATUS_LABELS[st] || st) + "</div>"
+      + "<div>Wygenerowano: " + plDate(todayIso()) + "</div></div></div>"
+      + '<div class="boxes">'
+      + '<div class="box">SUMA ZALICZEK<b>' + pln(t.adv) + "</b></div>"
+      + '<div class="box">WYDATKI BRUTTO<b>' + pln(t.gross) + "</b><span>netto " + pln(t.netto) + " • VAT " + pln(t.vat) + "</span></div>"
+      + '<div class="box">SALDO<b>' + pln(t.bal) + "</b><span>" + (t.bal >= 0 ? "pozostało z zaliczek" : "do dopłaty") + "</span></div>"
+      + "</div>"
+      + "<h2>Zaliczki od klienta</h2>"
+      + '<table><thead><tr><th>Data</th><th>Notatka</th><th class="num">Kwota</th></tr></thead><tbody>' + advRows + "</tbody></table>"
+      + "<h2>Wydatki</h2>"
+      + '<table><thead><tr><th>Data</th><th>Opis</th><th>Kategoria</th><th class="num">Netto</th><th class="num">VAT %</th><th class="num">Kwota VAT</th><th class="num">Brutto</th></tr></thead><tbody>' + expRows + "</tbody></table>"
+      + '<div class="ft">MUREK — FUNDAMENTALNA SOLIDNOŚĆ</div>'
+      + "<scr" + "ipt>window.onload=function(){setTimeout(function(){window.print();},300);};</scr" + "ipt>"
+      + "</body></html>";
+
+    var w = window.open("", "_blank");
+    if (!w) { alert("Przeglądarka zablokowała okno raportu — zezwól na wyskakujące okna."); return; }
+    w.document.write(html);
+    w.document.close();
+  }
+  $("pdfBtn").onclick = printReport;
 
   // ---------- CSV ----------
   function downloadCsv(name, rows){
@@ -883,7 +1169,11 @@ ${FONT_LINKS}
 <body>
 <header class="top">
   ${BRAND_HTML}
-  <div class="top-actions"><span id="siteTitle" style="font-weight:600"></span></div>
+  <div class="top-actions">
+    <span id="siteTitle" style="font-weight:600"></span>
+    <span id="statusBadge"></span>
+    <button class="ghost" id="printBtn">Zapisz PDF</button>
+  </div>
 </header>
 
 <main id="content">
@@ -915,6 +1205,8 @@ ${FONT_LINKS}
     return p[2] + "." + p[1] + "." + p[0];
   }
 
+  document.getElementById("printBtn").onclick = function(){ window.print(); };
+
   fetch(BASE + "/api/client/" + TOKEN).then(function(res){
     return res.json().then(function(data){
       if (!res.ok) throw new Error(data.error || "Błąd");
@@ -928,6 +1220,10 @@ ${FONT_LINKS}
     var pct = adv > 0 ? Math.min(100, Math.round(gross / adv * 100)) : 0;
 
     document.getElementById("siteTitle").textContent = data.site.name;
+    if (data.site.status === "done" || data.site.status === "archived") {
+      document.getElementById("statusBadge").innerHTML =
+        '<span class="status-pill st-done">Budowa zakończona</span>';
+    }
 
     var advRows = data.advances.length ? data.advances.map(function(a){
       return "<tr><td>" + plDate(a.received_on) + "</td>"

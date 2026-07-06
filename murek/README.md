@@ -48,6 +48,13 @@ supabase functions deploy murek --no-verify-jwt --project-ref djwbznlykqcqpvybvr
   automatyczne rozbicie netto/VAT, kolumna „narastająco" i wiersz sumy,
 - zaliczki: data, notatka, kwota, suma na górze panelu,
 - saldo = zaliczki − wydatki brutto (zielone/czerwone),
+- edycja wpisów (ołówek przy każdym wydatku i zaliczce),
+- statusy budowy: **W trakcie / Zakończona / Archiwum** (ustawienia budowy);
+  budowy z archiwum lądują w osobnej grupie listy wyboru,
 - eksport CSV (wydatki i zaliczki, format zgodny z polskim Excelem),
+- **eksport PDF** — przycisk „Eksport PDF" otwiera gotowy raport rozliczenia
+  (zaliczki, wydatki z rozbiciem VAT, saldo) i wywołuje drukowanie →
+  „Zapisz jako PDF"; panel klienta ma analogiczny przycisk „Zapisz PDF",
 - panel klienta: suma wpłat, wykorzystane środki z listą „na co", pasek
-  postępu wykorzystania zaliczek — bez możliwości edycji.
+  postępu wykorzystania zaliczek, plakietka „Budowa zakończona" — bez
+  możliwości edycji.
