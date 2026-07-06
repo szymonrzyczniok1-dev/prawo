@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>MUREK — rozliczenie budowy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#25384a; --navy2:#31495f; --orange:#f5821f; --orange-d:#d96d10;
+  --gray:#6d6e71; --bg:#eff3f6; --card:#ffffff; --line:#dde5ec;
+  --text:#1e2c39; --muted:#64748b; --green:#1d8a56; --red:#c0392b;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:'Poppins','Segoe UI',system-ui,-apple-system,sans-serif;
+  background:var(--bg); color:var(--text); min-height:100vh;
+}
+header.top{
+  background:var(--navy); color:#fff; padding:14px 20px;
+  display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+}
+.brand{display:flex; align-items:center; gap:12px}
+.brand .logo{height:46px; width:auto; --navy:#fff; --gray:#b9c4cd; --orange:#f5821f}
+.brand-t{display:flex; flex-direction:column; line-height:1.15}
+.brand-t strong{font-size:1.35rem; letter-spacing:.14em}
+.brand-t span{font-size:.6rem; letter-spacing:.22em; color:var(--orange); font-weight:600}
+.top-actions{margin-left:auto; display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+main{max-width:1100px; margin:0 auto; padding:20px 16px 60px}
+.cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px; margin-bottom:22px}
+.card{
+  background:var(--card); border:1px solid var(--line); border-radius:14px;
+  padding:16px 18px; box-shadow:0 1px 3px rgba(30,44,57,.06);
+}
+.card h3{font-size:.72rem; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); font-weight:600; margin-bottom:6px}
+.card .big{font-size:1.55rem; font-weight:700; color:var(--navy)}
+.card .sub{font-size:.78rem; color:var(--muted); margin-top:4px}
+.card.accent{border-top:4px solid var(--orange)}
+.card.balance-pos .big{color:var(--green)}
+.card.balance-neg .big{color:var(--red)}
+section.panel{
+  background:var(--card); border:1px solid var(--line); border-radius:14px;
+  padding:18px; margin-bottom:22px; box-shadow:0 1px 3px rgba(30,44,57,.06);
+}
+.panel-head{display:flex; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap}
+.panel-head h2{font-size:1.05rem; color:var(--navy)}
+button{
+  font:inherit; font-weight:600; border:none; border-radius:9px; cursor:pointer;
+  padding:10px 16px; background:var(--orange); color:#fff;
+}
+button.ghost{background:transparent; color:#fff; border:1px solid rgba(255,255,255,.35); font-weight:500}
+button.ghost:hover{background:rgba(255,255,255,.12)}
+.table-wrap{overflow-x:auto}
+table{width:100%; border-collapse:collapse; font-size:.88rem}
+th{
+  text-align:left; font-size:.68rem; text-transform:uppercase; letter-spacing:.08em;
+  color:var(--muted); padding:8px 10px; border-bottom:2px solid var(--line); white-space:nowrap;
+}
+td{padding:9px 10px; border-bottom:1px solid var(--line); vertical-align:top}
+td.num,th.num{text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums}
+tr.sum td{font-weight:700; color:var(--navy); border-top:2px solid var(--navy); border-bottom:none; background:#f6f8fa}
+.pill{display:inline-block; font-size:.7rem; font-weight:600; padding:2px 9px; border-radius:99px; background:#eef2f6; color:var(--navy2); white-space:nowrap}
+.muted{color:var(--muted)}
+.empty{padding:18px; text-align:center; color:var(--muted); font-size:.9rem}
+.progress{height:10px; background:#e2e9ef; border-radius:99px; overflow:hidden; margin-top:10px}
+.progress>div{height:100%; background:var(--orange); border-radius:99px}
+footer.foot{
+  text-align:center; color:var(--muted); font-size:.75rem; padding:24px 16px;
+}
+footer.foot b{color:var(--navy); letter-spacing:.1em}
+.status-pill{font-size:.72rem; font-weight:600; padding:3px 12px; border-radius:99px; white-space:nowrap}
+.st-done{background:#e2f4ea; color:#1d8a56}
+@media print{
+  header.top{background:#fff; color:var(--navy)}
+  .brand .logo{--navy:#25384a; --gray:#6d6e71}
+  .brand-t strong{color:var(--navy)}
+  button{display:none !important}
+  body{background:#fff}
+  .card,section.panel{box-shadow:none}
+}
+@media (max-width:640px){
+  .brand-t strong{font-size:1.1rem}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <svg class="logo" viewBox="0 0 120 104" aria-hidden="true">
+      <rect x="24" y="16" width="11" height="20" fill="var(--navy)"/>
+      <path d="M60 0 L118 48 L109 56 L60 15 L11 56 L2 48 Z" fill="var(--navy)"/>
+      <rect x="49" y="17" width="22" height="22" transform="rotate(45 60 28)" fill="var(--orange)"/>
+      <path d="M26 46 H44 L60 62 V86 L44 70 V100 H26 Z" fill="var(--navy)"/>
+      <path d="M94 46 H76 L60 62 V86 L76 70 V100 H94 Z" fill="var(--gray)"/>
+    </svg>
+    <div class="brand-t">
+      <strong>MUREK</strong>
+      <span>FUNDAMENTALNA SOLIDNOŚĆ</span>
+    </div>
+  </div>
+  <div class="top-actions">
+    <span id="siteTitle" style="font-weight:600"></span>
+    <span id="statusBadge"></span>
+    <button class="ghost" id="printBtn">Zapisz PDF</button>
+  </div>
+</header>
+
+<main id="content">
+  <div class="empty" id="loading">Wczytywanie rozliczenia…</div>
+</main>
+
+<footer class="foot"><b>MUREK</b> — Fundamentalna solidność</footer>
+
+<script>
+(function(){
+  "use strict";
+  var API = "https://djwbznlykqcqpvybvrtq.supabase.co/functions/v1/murek";
+  var TOKEN = new URLSearchParams(location.search).get("t") || "";
+
+  function esc(s){
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+  function pln(n){
+    return Number(n || 0).toLocaleString("pl-PL",
+      { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " zł";
+  }
+  function r2(n){ return Math.round(n * 100) / 100; }
+  function plDate(iso){
+    if (!iso) return "";
+    var p = iso.split("-");
+    return p[2] + "." + p[1] + "." + p[0];
+  }
+
+  document.getElementById("printBtn").onclick = function(){ window.print(); };
+
+  fetch(API + "/api/client/" + TOKEN).then(function(res){
+    return res.json().then(function(data){
+      if (!res.ok) throw new Error(data.error || "Błąd");
+      return data;
+    });
+  }).then(function(data){
+    var adv = 0, gross = 0;
+    data.advances.forEach(function(a){ adv = r2(adv + Number(a.amount)); });
+    data.expenses.forEach(function(x){ gross = r2(gross + Number(x.gross)); });
+    var bal = r2(adv - gross);
+    var pct = adv > 0 ? Math.min(100, Math.round(gross / adv * 100)) : 0;
+
+    document.getElementById("siteTitle").textContent = data.site.name;
+    if (data.site.status === "done" || data.site.status === "archived") {
+      document.getElementById("statusBadge").innerHTML =
+        '<span class="status-pill st-done">Budowa zakończona</span>';
+    }
+
+    var advRows = data.advances.length ? data.advances.map(function(a){
+      return "<tr><td>" + plDate(a.received_on) + "</td>"
+        + "<td>" + (a.note ? esc(a.note) : '<span class="muted">—</span>') + "</td>"
+        + '<td class="num">' + pln(a.amount) + "</td></tr>";
+    }).join("") + '<tr class="sum"><td colspan="2">SUMA WPŁAT</td><td class="num">' + pln(adv) + "</td></tr>"
+      : '<tr><td class="empty">Brak zarejestrowanych wpłat.</td></tr>';
+
+    var expRows = data.expenses.length ? data.expenses.map(function(x){
+      return "<tr><td>" + plDate(x.spent_on) + "</td>"
+        + "<td>" + esc(x.description) + "</td>"
+        + '<td><span class="pill">' + esc(x.category) + "</span></td>"
+        + '<td class="num"><b>' + pln(x.gross) + "</b></td></tr>";
+    }).join("") + '<tr class="sum"><td colspan="3">RAZEM WYKORZYSTANO</td><td class="num">' + pln(gross) + "</td></tr>"
+      : '<tr><td class="empty">Brak zarejestrowanych wydatków.</td></tr>';
+
+    var hello = data.site.client_name
+      ? '<p class="muted" style="margin-bottom:16px">Rozliczenie dla: <b>' + esc(data.site.client_name) + "</b></p>"
+      : "";
+
+    document.getElementById("content").innerHTML =
+      hello
+      + '<div class="cards">'
+      +   '<div class="card accent"><h3>Wpłacone zaliczki</h3><div class="big">' + pln(adv) + "</div></div>"
+      +   '<div class="card"><h3>Wykorzystane środki</h3><div class="big">' + pln(gross) + "</div>"
+      +     '<div class="progress"><div style="width:' + pct + '%"></div></div>'
+      +     '<div class="sub">' + pct + "% zaliczek</div></div>"
+      +   '<div class="card ' + (bal >= 0 ? "balance-pos" : "balance-neg") + '"><h3>Pozostało środków</h3><div class="big">' + pln(bal) + "</div>"
+      +     '<div class="sub">' + (bal >= 0 ? "do wykorzystania" : "do dopłaty") + "</div></div>"
+      + "</div>"
+      + '<section class="panel"><div class="panel-head"><h2>Na co wykorzystano środki</h2></div>'
+      +   '<div class="table-wrap"><table><thead><tr><th>Data</th><th>Opis</th><th>Kategoria</th><th class="num">Kwota</th></tr></thead>'
+      +   "<tbody>" + expRows + "</tbody></table></div></section>"
+      + '<section class="panel"><div class="panel-head"><h2>Wpłacone zaliczki</h2></div>'
+      +   '<div class="table-wrap"><table><thead><tr><th>Data</th><th>Notatka</th><th class="num">Kwota</th></tr></thead>'
+      +   "<tbody>" + advRows + "</tbody></table></div></section>";
+  }).catch(function(e){
+    document.getElementById("content").innerHTML =
+      '<div class="empty">Nie udało się wczytać rozliczenia.<br>' + esc(e.message) + "</div>";
+  });
+})();
+</script>
+</body>
+</html>
