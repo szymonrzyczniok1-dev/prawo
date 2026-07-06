@@ -24,7 +24,8 @@ header.top{
   display:flex; align-items:center; gap:16px; flex-wrap:wrap;
 }
 .brand{display:flex; align-items:center; gap:12px}
-.brand .logo{height:46px; width:auto; --navy:#fff; --gray:#b9c4cd; --orange:#f5821f}
+.brand .logo{height:46px; width:auto}
+.brand .logo-dark{display:none}
 .brand-t{display:flex; flex-direction:column; line-height:1.15}
 .brand-t strong{font-size:1.35rem; letter-spacing:.14em}
 .brand-t span{font-size:.6rem; letter-spacing:.22em; color:var(--orange); font-weight:600}
@@ -99,7 +100,7 @@ dialog .actions{display:flex; gap:8px; justify-content:flex-end; margin-top:16px
 }
 .login-wrap{min-height:100vh; display:flex; align-items:center; justify-content:center; background:var(--navy); padding:16px}
 .login-card{background:#fff; border-radius:18px; padding:36px 32px; max-width:400px; width:100%; text-align:center}
-.login-card .logo{height:74px; margin-bottom:10px}
+.login-card .logo{height:120px; width:auto; margin-bottom:14px}
 .login-card h1{color:var(--navy); letter-spacing:.14em; font-size:1.6rem}
 .login-card .tag{color:var(--orange); font-size:.66rem; letter-spacing:.22em; font-weight:600; margin-bottom:24px}
 .login-card input{width:100%; margin-bottom:12px; text-align:center}
@@ -118,7 +119,8 @@ footer.foot b{color:var(--navy); letter-spacing:.1em}
 .st-archived{background:#e8ecf0; color:#64748b}
 @media print{
   header.top{background:#fff; color:var(--navy)}
-  .brand .logo{--navy:#25384a; --gray:#6d6e71}
+  .brand .logo-light{display:none}
+  .brand .logo-dark{display:inline}
   .brand-t strong{color:var(--navy)}
   button,.top-actions select{display:none !important}
   body{background:#fff}
@@ -135,14 +137,7 @@ footer.foot b{color:var(--navy); letter-spacing:.1em}
 
 <div id="loginView" class="login-wrap">
   <div class="login-card">
-    <svg class="logo" style="--navy:#25384a;--gray:#6d6e71;--orange:#f5821f" viewBox="0 0 120 104" aria-hidden="true">
-      <rect x="24" y="16" width="11" height="20" fill="var(--navy)"/>
-      <path d="M60 0 L118 48 L109 56 L60 15 L11 56 L2 48 Z" fill="var(--navy)"/>
-      <rect x="49" y="17" width="22" height="22" transform="rotate(45 60 28)" fill="var(--orange)"/>
-      <path d="M26 46 H44 L60 62 V86 L44 70 V100 H26 Z" fill="var(--navy)"/>
-      <path d="M94 46 H76 L60 62 V86 L76 70 V100 H94 Z" fill="var(--gray)"/>
-    </svg>
-    <h1>MUREK</h1>
+    <img class="logo" src="logo-pelne.png" alt="MUREK">
     <div class="tag">FUNDAMENTALNA SOLIDNOŚĆ</div>
     <input id="keyInput" type="password" placeholder="Klucz dostępu" autocomplete="current-password">
     <button id="loginBtn">Wejdź do panelu</button>
@@ -153,13 +148,8 @@ footer.foot b{color:var(--navy); letter-spacing:.1em}
 <div id="appView" style="display:none">
   <header class="top">
     <div class="brand">
-      <svg class="logo" viewBox="0 0 120 104" aria-hidden="true">
-        <rect x="24" y="16" width="11" height="20" fill="var(--navy)"/>
-        <path d="M60 0 L118 48 L109 56 L60 15 L11 56 L2 48 Z" fill="var(--navy)"/>
-        <rect x="49" y="17" width="22" height="22" transform="rotate(45 60 28)" fill="var(--orange)"/>
-        <path d="M26 46 H44 L60 62 V86 L44 70 V100 H26 Z" fill="var(--navy)"/>
-        <path d="M94 46 H76 L60 62 V86 L76 70 V100 H94 Z" fill="var(--gray)"/>
-      </svg>
+      <img class="logo logo-light" src="logo-biale.png" alt="">
+      <img class="logo logo-dark" src="logo.png" alt="">
       <div class="brand-t">
         <strong>MUREK</strong>
         <span>FUNDAMENTALNA SOLIDNOŚĆ</span>
@@ -768,7 +758,7 @@ footer.foot b{color:var(--navy); letter-spacing:.1em}
     var css = "body{font-family:Arial,Helvetica,sans-serif;color:#1e2c39;margin:28px;font-size:13px}"
       + ".h{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #25384a;padding-bottom:14px;margin-bottom:16px}"
       + ".brand{display:flex;align-items:center;gap:12px}"
-      + ".brand .logo{height:52px;width:auto;--navy:#25384a;--gray:#6d6e71;--orange:#f5821f}"
+      + ".brand .logo{height:52px;width:auto}"
       + ".brand-t{display:flex;flex-direction:column;line-height:1.15}"
       + ".brand-t strong{font-size:1.3rem;letter-spacing:.14em;color:#25384a}"
       + ".brand-t span{font-size:.6rem;letter-spacing:.22em;color:#f5821f;font-weight:600}"
@@ -791,7 +781,8 @@ footer.foot b{color:var(--navy); letter-spacing:.1em}
     var html = '<!doctype html><html lang="pl"><head><meta charset="utf-8">'
       + "<title>Rozliczenie — " + esc(state.site.name) + "</title>"
       + "<style>" + css + "</style></head><body>"
-      + '<div class="h">' + document.querySelector(".brand").outerHTML
+      + '<div class="h"><div class="brand"><img class="logo" src="' + new URL("logo.png", location.href).href + '" alt="MUREK">'
+      + '<div class="brand-t"><strong>MUREK</strong><span>FUNDAMENTALNA SOLIDNOŚĆ</span></div></div>'
       + '<div class="hr"><h1>Rozliczenie budowy</h1>'
       + "<div><b>" + esc(state.site.name) + "</b></div>"
       + (state.site.client_name ? "<div>Klient: " + esc(state.site.client_name) + "</div>" : "")

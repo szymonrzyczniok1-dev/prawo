@@ -24,7 +24,8 @@ header.top{
   display:flex; align-items:center; gap:16px; flex-wrap:wrap;
 }
 .brand{display:flex; align-items:center; gap:12px}
-.brand .logo{height:46px; width:auto; --navy:#fff; --gray:#b9c4cd; --orange:#f5821f}
+.brand .logo{height:46px; width:auto}
+.brand .logo-dark{display:none}
 .brand-t{display:flex; flex-direction:column; line-height:1.15}
 .brand-t strong{font-size:1.35rem; letter-spacing:.14em}
 .brand-t span{font-size:.6rem; letter-spacing:.22em; color:var(--orange); font-weight:600}
@@ -75,7 +76,8 @@ footer.foot b{color:var(--navy); letter-spacing:.1em}
 .st-done{background:#e2f4ea; color:#1d8a56}
 @media print{
   header.top{background:#fff; color:var(--navy)}
-  .brand .logo{--navy:#25384a; --gray:#6d6e71}
+  .brand .logo-light{display:none}
+  .brand .logo-dark{display:inline}
   .brand-t strong{color:var(--navy)}
   button{display:none !important}
   body{background:#fff}
@@ -89,13 +91,8 @@ footer.foot b{color:var(--navy); letter-spacing:.1em}
 <body>
 <header class="top">
   <div class="brand">
-    <svg class="logo" viewBox="0 0 120 104" aria-hidden="true">
-      <rect x="24" y="16" width="11" height="20" fill="var(--navy)"/>
-      <path d="M60 0 L118 48 L109 56 L60 15 L11 56 L2 48 Z" fill="var(--navy)"/>
-      <rect x="49" y="17" width="22" height="22" transform="rotate(45 60 28)" fill="var(--orange)"/>
-      <path d="M26 46 H44 L60 62 V86 L44 70 V100 H26 Z" fill="var(--navy)"/>
-      <path d="M94 46 H76 L60 62 V86 L76 70 V100 H94 Z" fill="var(--gray)"/>
-    </svg>
+    <img class="logo logo-light" src="logo-biale.png" alt="">
+    <img class="logo logo-dark" src="logo.png" alt="">
     <div class="brand-t">
       <strong>MUREK</strong>
       <span>FUNDAMENTALNA SOLIDNOŚĆ</span>
